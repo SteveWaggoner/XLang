@@ -1,0 +1,8 @@
+# manually add the tools
+tools/
+*.s
+*.o
+*.PRG
+*.obj
+*.list
+*.mmap
