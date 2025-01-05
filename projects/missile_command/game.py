@@ -14,21 +14,25 @@ class Position:
     def __init__(self,x,y):
         self.x = x
         self.y = y
+    def __str__(self):
+        return str(round(self.x,1))+","+str(round(self.y,1))
 
 class Frame:
-    def __init__(self, action, next_tick=1, num=None):
-        self.next_tick = next_tick
+    def __init__(self, action, num=None, duration=1):
         self.action = action
         self.num = num
+        self.duration = duration
 
 class Animation:
 
     def __init__(self, item):
         self.item    = item
         self.frame_n = 0
+        self.sleep = 0
 
     def reset(self):
         self.frame_n = 0
+        self.sleep = 0
 
     def get_frame(self):
         return None
@@ -36,15 +40,25 @@ class Animation:
     def next_frame(self):
         pass
 
+    def run_action(self, frame):
+        if frame.action == "radius":
+            self.item.radius = frame.num
+        elif frame.action == "destroy":
+            self.item.destroy()
+
     def tick(self):
 
         frame = self.get_frame()
         if frame:
-            if frame.action == "radius":
-                self.item.radius = frame.num
-            elif frame.action == "destroy":
-                self.item.destroy()
-            self.next_frame()
+            if self.sleep == 0:
+                self.run_action(frame)
+                self.next_frame()
+                if frame.duration == 0:  #no duration goto next frame
+                    self.tick()
+                else:
+                    self.sleep = frame.duration - 1
+            else:
+                self.sleep = self.sleep - 1
 
 class ExplosionAnimation(Animation):
 
@@ -67,10 +81,47 @@ class ExplosionAnimation(Animation):
     def next_frame(self):
         self.frame_n = ( self.frame_n + 1 ) % len(ExplosionAnimation.frames)
 
+class PlaneAnimation(Animation):
+
+    frames = []
+    frames.append(Frame("radius", num=5, duration=3))
+    frames.append(Frame("radius", num=6, duration=5))
+    frames.append(Frame("radius", num=5, duration=1))
+    frames.append(Frame("radius", num=4, duration=1))
+
+    def get_frame(self):
+        return PlaneAnimation.frames[self.frame_n]
+
+    def next_frame(self):
+        self.frame_n = ( self.frame_n + 1 ) % len(PlaneAnimation.frames)
 
 
-class Item:
+class Graphic:
+
     def __init__(self):
+        # graphical object
+        self.graphic = []
+        self.animation = None
+
+    def undraw(self):
+        for g in self.graphic:
+            g.undraw()
+        self.graphic = []
+
+    def draw(self, win):
+
+        self.undraw()
+        self.render()
+        for g in self.graphic:
+            g.draw(win)
+
+    def render(self):
+        pass
+
+
+class Item(Graphic):
+    def __init__(self):
+        super().__init__()
 
         # memory allocation
         self.active = False
@@ -79,17 +130,25 @@ class Item:
         self.start = None   # origin of missile/bomb
         self.pos   = None
         self.dest  = None
+        self.velocity = None
+        self.distance = None
 
         self.width  = None
         self.height = None
-        self.radius = 1
+        self.radius = 1   # all enemys have a radius so just default
 
-        # graphical object
-        self.graphic = []
-        self.animation = None
+        self.route = None
+        self.route_n = 0
+        self.last_dodge = 0
+        self.destroy_at_dest = False
+
+    def __str__(self):
+        return self.__class__.__name__ + "(pos="+str(self.pos)+", "+str(self.width)+","+str(self.height)+","+str(self.radius) \
+            +",dest="+str(self.dest)+", velocity="+str(self.velocity)+",dist="+str(self.distance)+")"
 
 
     def collide_circles(self, other):
+
         diff_x = abs(self.pos.x - other.pos.x)
         if diff_x < self.radius + other.radius:
             diff_y = abs(self.pos.y - other.pos.y)
@@ -115,37 +174,37 @@ class Item:
 
         self.start = start
         self.pos   = Position(start.x,start.y)
-        self.width = width
-        self.height= height
+
+        if not width is None:
+            self.width = width
+            self.height= height
 
         if dest:
-
             self.dest  = dest
             self.speed = speed
+            self.update_vectors()
 
-            self.distance = self.distance_to(self.dest)
 
-            seconds_until_dest = (self.distance / self.speed)
-            ticks_until_dest = seconds_until_dest * TICKS_PER_SECOND
-            delta_x = self.dest.x - self.pos.x
-            delta_y = self.dest.y - self.pos.y
+    def update_vectors(self):
 
-            delta_x_per_tick = delta_x / ticks_until_dest
-            delta_y_per_tick = delta_y / ticks_until_dest
+        self.distance = self.distance_to(self.dest)
 
-            self.velocity = Point(delta_x_per_tick,delta_y_per_tick)
+        seconds_until_dest = (self.distance / self.speed)
+        ticks_until_dest = seconds_until_dest * TICKS_PER_SECOND
+        delta_x = self.dest.x - self.pos.x
+        delta_y = self.dest.y - self.pos.y
 
-            print("self.distance = "+str(self.distance))
-            print("self.speed = "+str(self.speed))
-            print("seconds_until_dest = "+str(seconds_until_dest))
-            print("ticks_until_dest = "+str(ticks_until_dest))
-            print("self.velocity = "+str(self.velocity))
+        delta_x_per_tick = delta_x / ticks_until_dest
+        delta_y_per_tick = delta_y / ticks_until_dest
+
+        self.velocity = Position(delta_x_per_tick,delta_y_per_tick)
 
 
     def move(self):
         self.pos.x = self.pos.x + self.velocity.x
         self.pos.y = self.pos.y + self.velocity.y
         self.distance = self.distance_to(self.dest)
+
 
     def destroy(self):
         if self.active:
@@ -154,27 +213,16 @@ class Item:
             self.active = False
             self.undraw()
 
-
-    def undraw(self):
-        for g in self.graphic:
-            g.undraw()
-        self.graphic = []
-
-    def draw(self, win):
-
-        self.undraw()
-        self.render()
-        for g in self.graphic:
-            g.draw(win)
-
     def render(self):
-        # default to rectangle
-        self.graphic.append(Rectangle(Point(self.pos.x, self.pos.y),
-                                      Point(self.pos.x+self.width, self.pos.y+self.height)))
-
+        # dummy
+        self.graphic.append(Circle(Point(self.start.x, self.start.y), 1))
 
 
 class MissileItem(Item):
+    def __init__(self):
+        super().__init__()
+        self.destroy_at_dest = True
+
     def render(self):
         self.graphic.append(Line(Point(self.start.x, self.start.y),
                                  Point(self.pos.x, self.pos.y)))
@@ -185,6 +233,36 @@ class BombItem(Item):
         self.graphic.append(Line(Point(self.start.x, self.start.y),
                                  Point(self.pos.x, self.pos.y)))
         self.graphic.append(Circle(Point(self.pos.x, self.pos.y), 1))
+
+class SmartBombItem(Item):
+    def render(self):
+        self.graphic.append(Line(Point(self.pos.x-2, self.pos.y-2),
+                                 Point(self.pos.x+2, self.pos.y+2)))
+        self.graphic.append(Line(Point(self.pos.x+2, self.pos.y-2),
+                                 Point(self.pos.x-2, self.pos.y+2)))
+        self.graphic.append(Circle(Point(self.pos.x, self.pos.y), 1))
+
+
+class PlaneItem(Item):
+    def __init__(self):
+        super().__init__()
+        self.animation = PlaneAnimation(self)
+        self.destroy_at_dest = True
+
+    def render(self):
+        self.graphic.append(Circle(Point(self.pos.x, self.pos.y), self.radius))
+
+class AlienItem(Item):
+    def __init__(self):
+        super().__init__()
+        self.width  = 3
+        self.height = 3
+        self.destroy_at_dest = True
+
+    def render(self):
+        self.graphic.append(Rectangle(Point(self.pos.x, self.pos.y), Point(self.pos.x+self.width, self.pos.y+self.height)))
+
+
 
 class ExplosionItem(Item):
     def __init__(self):
@@ -215,7 +293,25 @@ class CityItem(Item):
                                           Point(self.pos.x+self.width, self.pos.y+self.height)))
 
 class LandItem(Item):
+    def render(self):
+        self.graphic.append(Rectangle(Point(self.pos.x, self.pos.y),
+                                      Point(self.pos.x+self.width, self.pos.y+self.height)))
+
+class Background(Graphic):
     pass
+
+
+class Foreground(Graphic):
+
+    def set_fields(self, level, score, game_over):
+        self.level = level
+        self.score = score
+        self.game_over = game_over
+
+    def render(self):
+        self.graphic.append(Text(Point(180, 10), "level: "+str(self.level)+"   score:" + str(self.score)))
+        if self.game_over:
+            self.graphic.append(Text(Point(180, 100), "GAME OVER"))
 
 
 class ItemList:
@@ -227,6 +323,9 @@ class ItemList:
         self.items = []
         for x in range(max_items):
             i = item_class()
+
+            print(i)
+
             i.list = self
             i.active = active
             self.items.append(i)
@@ -278,52 +377,93 @@ class ItemList:
         return hits
 
 
-class LevelBomb:
+class Enemy:
 
-    def __init__(self, launch_time, start, dest, speed):
-        self.launch_time = launch_time
+    def __init__(self, enemy, start, speed, dest=None, launch_time=None, attack_times=None, attack_types=None, route=None):
+        self.enemy = enemy
         self.start = start
         self.dest = dest
         self.speed = speed
+        self.launch_time = launch_time
+        self.attack_times = attack_times
+        self.attack_types = attack_types
+        self.route = route
+        if self.dest is None:
+            self.dest = self.route.pop(0)
+
+    def spawn(self, game):
+        if self.enemy == "bomb":
+            enemy = game.bomb.create()
+        elif self.enemy == "smartbomb":
+            enemy = game.smartbomb.create()
+        elif self.enemy == "plane":
+            enemy = game.plane.create()
+            enemy.attack_times = self.attack_times
+            enemy.attack_types = self.attack_types
+        elif self.enemy == "alien":
+            enemy = game.alien.create()
+            enemy.attack_times = self.attack_times
+            enemy.attack_types = self.attack_types
+            enemy.route = self.route
+        else:
+            raise Exception("unknown enemy: "+self.enemy)
+        enemy.set_position(self.start, self.dest, self.speed)
+
 
 
 class Game:
 
     levels = []
     levels.append([])
-    levels[0].append(LevelBomb(launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[0].append(LevelBomb(launch_time=50,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[0].append(LevelBomb(launch_time=60,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[0].append(LevelBomb(launch_time=80,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
+
+    levels[0].append(Enemy("smartbomb",launch_time=5,start=Position(x=180,y=0), speed=25, dest=Position(x=255, y=180)))
+
+    levels[0].append(Enemy("alien",launch_time=30,start=Position(x=0,y=110), speed=25,
+                           attack_times=[50,100],attack_types=["single_bomb"],
+                           route=[Position(x=50, y=90),Position(x=100, y=50),Position(x=150, y=90),Position(x=320, y=50)]))
+
+    levels[0].append(Enemy("alien",launch_time=60,start=Position(x=320,y=90), dest=Position(x=0, y=90), speed=25,
+                           attack_times=[30,31,32,90,91,92,120,121],attack_types=["single_bomb","multiple_bombs"]))
+
+    levels[0].append(Enemy("plane",launch_time=120,start=Position(x=320,y=90), dest=Position(x=0, y=90), speed=25,
+                           attack_times=[30,31,32,90,91,92,120,121],attack_types=["single_bomb","multiple_bombs"]))
 
     levels.append([])
-    levels[1].append(LevelBomb(launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=25))
-    levels[1].append(LevelBomb(launch_time=30,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=25))
-    levels[1].append(LevelBomb(launch_time=30,start=Position(x=270,y=0), dest=Position(x=180,y=200), speed=25))
-    levels[1].append(LevelBomb(launch_time=30,start=Position(x=210,y=0), dest=Position(x=115,y=180), speed=25))
-    levels[1].append(LevelBomb(launch_time=40,start=Position(x=110,y=0), dest=Position(x=115,y=180), speed=25))
-    levels[1].append(LevelBomb(launch_time=30,start=Position(x=210,y=0), dest=Position(x=255,y=180), speed=25))
-    levels[1].append(LevelBomb(launch_time=40,start=Position(x=110,y=0), dest=Position(x=85,y=180), speed=25))
+    levels[1].append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[1].append(Enemy("bomb",launch_time=5,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[1].append(Enemy("bomb",launch_time=6,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[1].append(Enemy("bomb",launch_time=8,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
+
 
     levels.append([])
-    levels[2].append(LevelBomb(launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=32,start=Position(x=15,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=34,start=Position(x=18,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=50,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=52,start=Position(x=54,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=54,start=Position(x=58,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=60,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=63,start=Position(x=72,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=66,start=Position(x=73,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[2].append(LevelBomb(launch_time=80,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
-    levels[2].append(LevelBomb(launch_time=88,start=Position(x=211,y=0), dest=Position(x=255, y=180), speed=15))
-    levels[2].append(LevelBomb(launch_time=89,start=Position(x=218,y=0), dest=Position(x=255, y=180), speed=15))
+    levels[2].append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=25))
+    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=25))
+    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=270,y=0), dest=Position(x=180,y=200), speed=25))
+    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=210,y=0), dest=Position(x=115,y=180), speed=25))
+    levels[2].append(Enemy("bomb",launch_time=4,start=Position(x=110,y=0), dest=Position(x=115,y=180), speed=25))
+    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=210,y=0), dest=Position(x=255,y=180), speed=25))
+    levels[2].append(Enemy("bomb",launch_time=4,start=Position(x=110,y=0), dest=Position(x=85,y=180), speed=25))
+
+    levels.append([])
+    levels[3].append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=3,start=Position(x=15,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=3,start=Position(x=18,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=5,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=5,start=Position(x=54,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=5,start=Position(x=58,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=6,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=6,start=Position(x=72,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=6,start=Position(x=73,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=8,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=8,start=Position(x=211,y=0), dest=Position(x=255, y=180), speed=15))
+    levels[3].append(Enemy("bomb",launch_time=8,start=Position(x=218,y=0), dest=Position(x=255, y=180), speed=15))
 
 
     def __init__(self):
 
         self.clock     = 0
-        self.wait_until = 0
+        self.level_clock = 0
+        self.sleep_until = 0
         self.level_step = None
 
         self.game_over = False
@@ -331,8 +471,14 @@ class Game:
         self.score = 0
         self.next_city_score = 10000
 
+        self.background = Background()
+        self.foreground = Foreground()
+
         self.missile   = ItemList(MissileItem,30)
         self.bomb      = ItemList(BombItem,30)
+        self.smartbomb = ItemList(SmartBombItem,4)
+        self.plane     = ItemList(PlaneItem,4)
+        self.alien     = ItemList(AlienItem,4)
         self.explosion = ItemList(ExplosionItem,30)
 
         self.init_land()
@@ -346,6 +492,8 @@ class Game:
     def init_land(self):
         self.land = ItemList(LandItem, 1, True)
         self.land[0].set_position(Position(x=0, y=185),width=320, height=15)
+
+        print("init_land "+str(self.land[0]))
 
     def init_cities(self):
 
@@ -371,7 +519,7 @@ class Game:
         print("starting level...")
         playsound("sounds/alert.mp3", False)
 
-        self.clock = 0
+        self.level_clock = 0
 
         self.active_level_n = level_n
         self.active_level = Game.levels[level_n]
@@ -381,6 +529,18 @@ class Game:
 
         for b in range(3):
             self.battery[b].num_missiles = 10
+
+    target_n=0
+    def get_random_target(self):
+        targets = [Position(x=55, y=200),
+                   Position(x=150, y=200),
+                   Position(x=180,y=200),
+                   Position(x=115,y=180),
+                   Position(x=255,y=180),
+                   Position(x=85,y=180)
+                   ]
+        Game.target_n = ( Game.target_n + 1 ) % len(targets)
+        return targets[Game.target_n]
 
 
     def launch_missile(self, battery_n, dest_x, dest_y, speed):
@@ -411,6 +571,20 @@ class Game:
         e = self.explosion.create()
         e.set_position(pos)
 
+
+    def create_attack(self, plane, attack_type):
+
+        if attack_type == "single_bomb":
+            target = self.get_random_target()
+            enemy = Enemy(enemy="bomb", start=Position(plane.pos.x,plane.pos.y), dest=target, speed=25)
+            enemy.spawn(self)
+        elif attack_type == "multiple_bombs":
+            for i in range(3):
+                target = self.get_random_target()
+                enemy = Enemy(enemy="bomb", start=Position(plane.pos.x+i,plane.pos.y+i), dest=target, speed=25)
+                enemy.spawn(self)
+        else:
+            print("unknown attack type: "+attack_type)
 
     def score_level(self):
         print("score_level")
@@ -455,69 +629,115 @@ class Game:
             self.active_battery_n = 2
 
 
-    def wait(self, seconds):
-        self.wait_until = self.clock + (seconds * TICKS_PER_SECOND)
+    def sleep(self, seconds):
+        self.sleep_until = self.clock + (seconds * TICKS_PER_SECOND)
 
-    def is_waiting(self):
-        return self.wait_until > self.clock
+    def is_sleeping(self):
+        return self.sleep_until > self.clock
 
-    def game_update(self):
+    def dodge_nearby_explosions(self, enemy):
+        for explosion in self.explosion.items:
+            if explosion.active:
+                if explosion.distance_to(enemy.pos) < 90 and enemy.last_dodge + 5 < self.clock:
+                    enemy.last_dodge = self.clock
+                    enemy.route_n = enemy.route_n - 1
+                    enemy.dest = Position(enemy.pos.x + (enemy.velocity.x * 6), enemy.pos.y - (enemy.velocity.y * 8))
+                    enemy.update_vectors()
+                    break
 
+
+    def move_items(self, collection, enable_attack=False, enable_explode=False, enable_dodge=False):
+
+        for item in collection.items:
+            if item.active:
+                item.move()
+
+                if enable_attack and item.attack_times:
+                    if self.level_clock in item.attack_times:
+                        attack_n = item.attack_times.index(self.level_clock)
+                        attack_type = item.attack_types[attack_n % len(item.attack_types)]
+                        self.create_attack(item, attack_type)
+
+                at_dest = item.distance < 5
+                if at_dest:
+
+                    if item.route and item.route_n < len(item.route):
+                        next_dest = item.route[item.route_n]
+                        item.route_n = item.route_n + 1
+                        item.dest = next_dest
+                        item.update_vectors()
+                    else:
+                        if enable_explode:
+                            self.create_explosion(item.pos)
+                        if item.destroy_at_dest:
+                            item.destroy()
+
+                if enable_dodge:
+                    if self.explosion.num_active > 0:
+                        self.dodge_nearby_explosions(item)
+
+
+
+    def explode_enemy(self, enemy, score_points):
+        bombs_hit = self.explosion.get_collisions_circles(enemy)
+        for explosion, enemy in bombs_hit:
+            self.score = self.score + score_points
+            enemy.destroy()
+            playsound("sounds/explosions.mp3", False)
+
+
+    def game_tick(self):
 
         #
-        # run the level
+        # process the end of level in step (let physics continue but update score)
         #
-        for level_bomb in self.active_level:
-            if level_bomb.launch_time == self.clock:
-                bomb = self.bomb.create()
-                bomb.set_position(level_bomb.start,level_bomb.dest, level_bomb.speed)
-
-        #
-        # if the game not over
-        #
-        if not self.game_over:
-
+        if not self.is_sleeping():
 
             #
-            # process the end of level in step (let physics continue but update score)
+            # run the level
             #
-            if not self.is_waiting():
+            for level_enemy in self.active_level:
+                if level_enemy.launch_time == self.level_clock:
+                    level_enemy.spawn(self)
 
-                is_level_over = self.active_level[-1].launch_time < self.clock and self.bomb.num_active == 0
+            #
+            # if the game not over
+            #
+            if not self.game_over:
+                is_level_over = self.active_level[-1].launch_time < self.level_clock \
+                        and self.bomb.num_active == 0 \
+                        and self.plane.num_active == 0
                 if self.level_step == None and is_level_over:
                     self.level_step = "score_level"
-                    self.wait(0.5)
+                    self.sleep(1.5)
                 elif self.level_step == "score_level":
                     self.score_level()
                     self.level_step = "next_level"
-                    self.wait(0.5)
+                    self.sleep(1.5)
                 elif self.level_step == "next_level":
                     self.level_step = None
                     self.next_level()
+
+            self.level_clock = self.level_clock + 1
 
 
         #
         # Physics
         #
-        for bomb in self.bomb.items:
-            if bomb.active:
-                bomb.move()
+        self.move_items(self.bomb)
+        self.move_items(self.smartbomb, enable_dodge=True)
+        self.move_items(self.plane, enable_attack=True)
+        self.move_items(self.alien, enable_attack=True)
+        self.move_items(self.missile, enable_explode=True)
 
-        for missile in self.missile.items:
-            if missile.active:
-                missile.move()
-                if missile.distance < 5:
-                    self.create_explosion(missile.pos)
-                    missile.destroy()
-
-        bombs_hit = self.explosion.get_collisions_circles(self.bomb)
-        for explosion, bomb in bombs_hit:
-            self.score = self.score + 25 #destroy dumb bombs = 25 points
-            bomb.destroy()
-            playsound("sounds/explosions.mp3", False)
+        self.explode_enemy(self.bomb, 25)
+        self.explode_enemy(self.plane, 100)
+        self.explode_enemy(self.alien, 100)
+        self.explode_enemy(self.smartbomb, 125)
 
 
-        cities_hit = self.bomb.get_collisions_pnt_in_rect(self.city)
+
+        cities_hit = self.bomb.get_collisions_pnt_in_rect(self.city) + self.smartbomb.get_collisions_pnt_in_rect(self.city)
         for bomb, city in cities_hit:
             if not city.destroyed:
                 print("city destroyed")
@@ -525,64 +745,52 @@ class Game:
                 bomb.destroy()
                 playsound("sounds/city-blow-up.mp3", False)
 
-        batteries_hit = self.bomb.get_collisions_pnt_in_rect(self.battery)
+        batteries_hit = self.bomb.get_collisions_pnt_in_rect(self.battery) + self.smartbomb.get_collisions_pnt_in_rect(self.battery)
         for bomb, battery in batteries_hit:
             if battery.num_missiles>0:
                 battery.num_missiles = 0
                 playsound("sounds/city-blow-up.mp3", False)
 
-        bombs_hit = self.bomb.get_collisions_pnt_in_rect(self.land)
+        bombs_hit = self.bomb.get_collisions_pnt_in_rect(self.land) + self.smartbomb.get_collisions_pnt_in_rect(self.land)
         for bomb,land in bombs_hit:
             bomb.destroy()
 
         self.clock = self.clock + 1
 
-    def draw_score(self, win):
-
-        for g in self.graphic:
-            g.undraw()
-        self.graphic = []
-        self.graphic.append(Text(Point(180, 10), "level: "+str(self.active_level_n + 1)+"   score:" + str(self.score)))
-        if self.game_over:
-            self.graphic.append(Text(Point(180, 100), "GAME OVER"))
-
-        for g in self.graphic:
-            g.draw(win)
+    def draw_items(self, collection):
+        for item in collection.items:
+            if item.active:
+                if item.animation:
+                    item.animation.tick()
+                    if item.active:
+                        item.draw(self.win)
+                else:
+                    item.draw(self.win)
 
 
     def game_draw(self):
 
-        for land in self.land.items:
-            land.draw(self.win)
+        self.background.draw(self.win)
 
-        for city in self.city.items:
-            city.draw(self.win)
+        self.draw_items(self.land)
+        self.draw_items(self.city)
+        self.draw_items(self.battery)
+        self.draw_items(self.missile)
+        self.draw_items(self.bomb)
+        self.draw_items(self.smartbomb)
+        self.draw_items(self.plane)
+        self.draw_items(self.alien)
+        self.draw_items(self.explosion)
 
-        for battery in self.battery.items:
-            battery.draw(self.win)
-
-        for missile in self.missile.items:
-            if missile.active:
-                missile.draw(self.win)
-
-        for bomb in self.bomb.items:
-            if bomb.active:
-                bomb.draw(self.win)
-
-        for explosion in self.explosion.items:
-            if explosion.active:
-                explosion.animation.tick()
-                if explosion.active:
-                    explosion.draw(self.win)
-
-        self.draw_score(self.win)
+        self.foreground.set_fields(level=self.active_level_n+1, score=self.score, game_over=self.game_over)
+        self.foreground.draw(self.win)
 
         self.win.flush()
         self.win.redraw()
 
 
     def is_game_active(self):
-        return not self.game_over or self.missile.num_active > 0 or self.explosion.num_active > 0 or self.bomb.num_active > 0
+        return not self.game_over or self.missile.num_active > 0 or self.explosion.num_active > 0 or self.bomb.num_active > 0 or self.plane.num_active > 0 or self.alien.num_active>0 or self.smartbomb.num_active > 0
 
     def game_loop(self):
 
@@ -590,7 +798,7 @@ class Game:
 
             start_time = time.time()
             self.game_input()
-            self.game_update()
+            self.game_tick()
             self.game_draw()
             end_time = time.time()
 
