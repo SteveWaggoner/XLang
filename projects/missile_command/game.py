@@ -5,10 +5,15 @@ from graphics import GraphWin, Rectangle, Point, Circle, Line, Text
 from playsound import playsound
 import time
 import math
+import sys
+
+from c6502 import WordDecimal, WordFloat, DWordDecimal
+
 
 
 SECONDS_PER_TICK=0.08
 TICKS_PER_SECOND=int(1.0/SECONDS_PER_TICK)
+
 
 class Position:
     def __init__(self,x,y):
@@ -27,10 +32,6 @@ class Animation:
 
     def __init__(self, item):
         self.item    = item
-        self.frame_n = 0
-        self.sleep = 0
-
-    def reset(self):
         self.frame_n = 0
         self.sleep = 0
 
@@ -165,10 +166,7 @@ class Item(Graphic):
 
     def distance_to(self, other):
         # manhattan_distance
-        #return abs(self.x - other_x) + abs(self.y - other_y)
-
-        # real
-        return math.sqrt(((self.pos.x - other.x)*(self.pos.x - other.x)) + ((self.pos.y - other.y)*(self.pos.y - other.y)))
+        return abs(self.pos.x - other.x) + abs(self.pos.y - other.y)
 
     def set_position(self, start, dest=None, speed=None, width=None, height=None):
 
@@ -185,12 +183,16 @@ class Item(Graphic):
             self.update_vectors()
 
 
-    def update_vectors(self):
+    def update_vectors_old(self):
 
         self.distance = self.distance_to(self.dest)
 
         seconds_until_dest = (self.distance / self.speed)
         ticks_until_dest = seconds_until_dest * TICKS_PER_SECOND
+
+        print("ticks_until_dest = "+str(ticks_until_dest))
+
+
         delta_x = self.dest.x - self.pos.x
         delta_y = self.dest.y - self.pos.y
 
@@ -198,6 +200,43 @@ class Item(Graphic):
         delta_y_per_tick = delta_y / ticks_until_dest
 
         self.velocity = Position(delta_x_per_tick,delta_y_per_tick)
+
+    def update_vectors(self):
+
+        print("self.dest.x    = "+str(self.dest.x))
+        print("self.dest.y    = "+str(self.dest.y))
+        print("self.pos.x     = "+str(self.pos.x))
+        print("self.pos.y     = "+str(self.pos.y))
+
+        delta_x = WordDecimal().set(self.dest.x - self.pos.x)
+        delta_y = WordDecimal().set(self.dest.y - self.pos.y)
+        print("delta_x = "+str(delta_x))
+        print("delta_y = "+str(delta_y))
+
+        rough_distance_in_pixels = delta_x.abs() + delta_y.abs()
+        print("rough_distance    = "+str(rough_distance_in_pixels))
+
+        pixels_per_second = WordDecimal().set(self.speed) # pixels per second
+        print("pixels_per_second = "+str(pixels_per_second))
+
+        seconds_until_dest = rough_distance_in_pixels / pixels_per_second
+        print("seconds_until_dest = "+str(seconds_until_dest))
+
+        print(TICKS_PER_SECOND)
+
+        ticks_per_second = WordDecimal().set(TICKS_PER_SECOND)
+        print("ticks_per_second  = "+str(ticks_per_second))
+
+        ticks_until_dest = seconds_until_dest * ticks_per_second
+        print("ticks_until_dest = "+str(ticks_until_dest))
+
+        delta_x_per_tick = delta_x / ticks_until_dest
+        delta_y_per_tick = delta_y / ticks_until_dest
+
+        print("pixels_per_second= "+str(pixels_per_second))
+        print("delta_x_per_tick = "+str(delta_x_per_tick))
+        print("delta_y_per_tick = "+str(delta_y_per_tick))
+        self.velocity = Position(delta_x_per_tick.get(),delta_y_per_tick.get())
 
 
     def move(self):
@@ -492,8 +531,6 @@ class Game:
     def init_land(self):
         self.land = ItemList(LandItem, 1, True)
         self.land[0].set_position(Position(x=0, y=185),width=320, height=15)
-
-        print("init_land "+str(self.land[0]))
 
     def init_cities(self):
 
