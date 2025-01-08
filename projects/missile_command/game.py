@@ -3,13 +3,13 @@
 # https://stackoverflow.com/questions/15886455/simple-graphics-for-python
 from graphics import GraphWin, Rectangle, Point, Circle, Line, Text
 from playsound import playsound
-import time
-import math
-import sys
+import time, math, sys
 
-from c6502 import Byte, Word, DWord, WordDecimal, WordFloat, DWordDecimal
+from c6502 import Byte, Word, DWord, WordDecimal
 
-SECONDS_PER_TICK=0.08
+# try for about 60 FPS
+FRAMES_PER_SECOND=60
+SECONDS_PER_TICK=1.0 / FRAMES_PER_SECOND
 TICKS_PER_SECOND=int(1.0/SECONDS_PER_TICK)
 
 class Position:
@@ -20,10 +20,10 @@ class Position:
         return str(round(self.x.get(),2))+","+str(round(self.y.get(),2))
 
 class Frame:
-    def __init__(self, action, num=0, duration=1):
+    def __init__(self, action, num=0, duration=0.1):
         self.action   = action
-        self.num      = Word().set(num)
-        self.duration = Byte().set(duration)
+        self.num      = Word(num)
+        self.duration = Word(int(duration * TICKS_PER_SECOND))
 
 class Animation:
 
@@ -177,8 +177,10 @@ class Item(Graphic):
         return False
 
     def distance_to(self, other):
-        # manhattan_distance
-        return (self.pos.x - other.x).abs() + (self.pos.y - other.y).abs()
+        # manhattan distance
+      #  return (self.pos.x - other.x).abs() + (self.pos.y - other.y).abs()
+        # chebyshev distance
+        return max((self.pos.x - other.x).abs(), (self.pos.y - other.y).abs())
 
     def set_position(self, start, dest=None, speed=None, width=None, height=None):
 
@@ -203,10 +205,20 @@ class Item(Graphic):
         rough_distance_in_pixels = delta_x.abs() + delta_y.abs()
         pixels_per_second = self.speed
         seconds_until_dest = rough_distance_in_pixels / pixels_per_second
-        ticks_until_dest = seconds_until_dest * TICKS_PER_SECOND
 
-        delta_x_per_tick = delta_x / ticks_until_dest
-        delta_y_per_tick = delta_y / ticks_until_dest
+        print(" seconds_until_dest = "+str(seconds_until_dest))
+        print(" TICKS_PER_SECOND   = "+str(TICKS_PER_SECOND))
+
+        #
+        # the " / 2" is to prevent the number getting too big for WordDecimal when FPS>60
+        #
+
+        ticks_until_dest = seconds_until_dest * int( TICKS_PER_SECOND / 2)
+
+        print(" ticks_until_dest   = "+str(ticks_until_dest))
+
+        delta_x_per_tick = (delta_x / ticks_until_dest) / 2
+        delta_y_per_tick = (delta_y / ticks_until_dest) / 2
 
         self.velocity = Position(delta_x_per_tick.get(),delta_y_per_tick.get())
 
@@ -321,7 +333,7 @@ class Foreground(Graphic):
         self.debug = debug
 
     def render(self):
-        self.add_text(Byte(40), Byte(20), " debug: " + str(self.debug))
+        self.add_text(Byte(60), Byte(20), str(self.debug))
         self.add_text(Byte(180), Byte(10), "level: "+str(self.level)+"   score:" + str(self.score))
         if self.game_over.get():
             self.add_text(Byte(180), Byte(100), "GAME OVER")
@@ -352,7 +364,7 @@ class ItemList:
         i = 0
 
         while i < len(self.items):
-            if not self.items[n].active:
+            if self.items[n].active == False:
                 self.items[n].active = True
                 self.next_alloc.set( ( n + 1 ) % len(self.items) )
                 self.num_active.set( self.num_active + 1 )
@@ -362,6 +374,7 @@ class ItemList:
             n = (n + 1) % len(self.items)
 
         print("bad alloc")
+        die = 0/0
         return None
 
     def clear(self):
@@ -397,8 +410,14 @@ class Enemy:
         self.start = start
         self.dest = dest
         self.speed = speed
-        self.launch_time = launch_time
-        self.attack_times = attack_times
+
+        if not launch_time is None:
+            #convert from seconds to ticks (ie. we can increase frame rate and timing doesn't change for level)
+            self.launch_time = int(launch_time * TICKS_PER_SECOND)
+        if not attack_times is None:
+            #convert from seconds to ticks (ie. we can increase frame rate and timing doesn't change for level)
+            self.attack_times = [int(s * TICKS_PER_SECOND) for s in attack_times]
+
         self.attack_types = attack_types
         self.route = route
         if self.dest is None:
@@ -423,61 +442,72 @@ class Enemy:
             raise Exception("unknown enemy: "+self.enemy)
         enemy.set_position(self.start, self.dest, self.speed)
 
+class Level:
+
+    def __init__(self):
+        self.enemy = []
+        self.score_multiplier = 1
+        self.backgroud_color = ""
 
 
 class Game:
 
     levels = []
-    levels.append([])
+    levels.append(Level())
+    levels[0].score_multiplier = 1
+    levels[0].background_color = "blue"
 
-    levels[0].append(Enemy("smartbomb",launch_time=5,start=Position(x=180,y=0), speed=25, dest=Position(x=255, y=180)))
+    levels[0].enemy.append(Enemy("smartbomb",launch_time=0.5,start=Position(x=180,y=0), speed=25, dest=Position(x=255, y=180)))
 
-    levels[0].append(Enemy("alien",launch_time=30,start=Position(x=0,y=110), speed=25,
+    levels[0].enemy.append(Enemy("alien",launch_time=3,start=Position(x=0,y=110), speed=25,
                            attack_times=[50,100],attack_types=["single_bomb"],
                            route=[Position(x=50, y=90),Position(x=100, y=50),Position(x=150, y=90),Position(x=320, y=50)]))
 
-    levels[0].append(Enemy("alien",launch_time=60,start=Position(x=320,y=90), dest=Position(x=0, y=90), speed=25,
+    levels[0].enemy.append(Enemy("alien",launch_time=10,start=Position(x=320,y=90), dest=Position(x=0, y=90), speed=25,
                            attack_times=[30,31,32,90,91,92,120,121],attack_types=["single_bomb","multiple_bombs"]))
 
-    levels[0].append(Enemy("plane",launch_time=80,start=Position(x=320,y=90), dest=Position(x=0, y=90), speed=25,
+    levels[0].enemy.append(Enemy("plane",launch_time=11,start=Position(x=320,y=90), dest=Position(x=0, y=90), speed=25,
                            attack_times=[30,31,32,90,91,92,120,121],attack_types=["single_bomb","multiple_bombs"]))
 
-    levels.append([])
-    levels[1].append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[1].append(Enemy("bomb",launch_time=5,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[1].append(Enemy("bomb",launch_time=6,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[1].append(Enemy("bomb",launch_time=8,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
+    levels.append(Level())
+    levels[1].enemy.append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[1].enemy.append(Enemy("bomb",launch_time=5,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[1].enemy.append(Enemy("bomb",launch_time=6,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[1].enemy.append(Enemy("bomb",launch_time=8,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
 
 
-    levels.append([])
-    levels[2].append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=25))
-    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=25))
-    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=270,y=0), dest=Position(x=180,y=200), speed=25))
-    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=210,y=0), dest=Position(x=115,y=180), speed=25))
-    levels[2].append(Enemy("bomb",launch_time=4,start=Position(x=110,y=0), dest=Position(x=115,y=180), speed=25))
-    levels[2].append(Enemy("bomb",launch_time=3,start=Position(x=210,y=0), dest=Position(x=255,y=180), speed=25))
-    levels[2].append(Enemy("bomb",launch_time=4,start=Position(x=110,y=0), dest=Position(x=85,y=180), speed=25))
+    levels.append(Level())
+    levels[2].enemy.append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=25))
+    levels[2].enemy.append(Enemy("bomb",launch_time=3,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=25))
+    levels[2].enemy.append(Enemy("bomb",launch_time=3,start=Position(x=270,y=0), dest=Position(x=180,y=200), speed=25))
+    levels[2].enemy.append(Enemy("bomb",launch_time=3,start=Position(x=210,y=0), dest=Position(x=115,y=180), speed=25))
+    levels[2].enemy.append(Enemy("bomb",launch_time=4,start=Position(x=110,y=0), dest=Position(x=115,y=180), speed=25))
+    levels[2].enemy.append(Enemy("bomb",launch_time=3,start=Position(x=210,y=0), dest=Position(x=255,y=180), speed=25))
+    levels[2].enemy.append(Enemy("bomb",launch_time=4,start=Position(x=110,y=0), dest=Position(x=85,y=180), speed=25))
 
-    levels.append([])
-    levels[3].append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=3,start=Position(x=15,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=3,start=Position(x=18,y=0), dest=Position(x=55, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=5,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=5,start=Position(x=54,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=5,start=Position(x=58,y=0), dest=Position(x=150, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=6,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=6,start=Position(x=72,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=6,start=Position(x=73,y=0), dest=Position(x=230, y=200), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=8,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=8,start=Position(x=211,y=0), dest=Position(x=255, y=180), speed=15))
-    levels[3].append(Enemy("bomb",launch_time=8,start=Position(x=218,y=0), dest=Position(x=255, y=180), speed=15))
+    levels.append(Level())
+    levels[3].enemy.append(Enemy("bomb",launch_time=1,start=Position(x=10,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=3,start=Position(x=15,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=3,start=Position(x=18,y=0), dest=Position(x=55, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=5,start=Position(x=50,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=5,start=Position(x=54,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=5,start=Position(x=58,y=0), dest=Position(x=150, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=6,start=Position(x=70,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=6,start=Position(x=72,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=6,start=Position(x=73,y=0), dest=Position(x=230, y=200), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=8,start=Position(x=210,y=0), dest=Position(x=255, y=180), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=8,start=Position(x=211,y=0), dest=Position(x=255, y=180), speed=15))
+    levels[3].enemy.append(Enemy("bomb",launch_time=8,start=Position(x=218,y=0), dest=Position(x=255, y=180), speed=15))
 
 
     def __init__(self):
 
         self.clock       = Word(0)
         self.sleep_until = Word(0)
-        self.level_step = None
+        self.level_step  = None
+        self.enemy_n     = Byte(0)
+
+        self.fps = ""
 
         self.game_over = Byte(False)
         self.graphic = []
@@ -487,12 +517,12 @@ class Game:
         self.background = Background()
         self.foreground = Foreground()
 
-        self.missile   = ItemList(MissileItem,30)
-        self.bomb      = ItemList(BombItem,30)
+        self.missile   = ItemList(MissileItem,15)
+        self.bomb      = ItemList(BombItem,25)
         self.smartbomb = ItemList(SmartBombItem,4)
         self.plane     = ItemList(PlaneItem,4)
         self.alien     = ItemList(AlienItem,4)
-        self.explosion = ItemList(ExplosionItem,30)
+        self.explosion = ItemList(ExplosionItem,15)
 
         self.init_land()
         self.init_cities()
@@ -532,6 +562,7 @@ class Game:
 
         self.clock.set(0)
         self.sleep_until.set(0)
+        self.enemy_n.set(0)
 
         self.active_level_n = level_n
         self.active_level = Game.levels[level_n]
@@ -714,27 +745,31 @@ class Game:
             #
             # run the level
             #
-            for level_enemy in self.active_level:
-                if level_enemy.launch_time == self.clock:
+            if self.enemy_n < len(self.active_level.enemy):
+                level_enemy = self.active_level.enemy[self.enemy_n.get()]
+                if level_enemy.launch_time < self.clock:
                     level_enemy.spawn(self)
+                    self.enemy_n = self.enemy_n + 1
 
             #
             # if the game not over
             #
-            if not self.game_over.get():
-                is_level_over = self.active_level[-1].launch_time < self.clock \
+            if self.game_over == False:
+                level_over = self.active_level.enemy[-1].launch_time < self.clock \
                         and self.bomb.num_active == 0 \
                         and self.plane.num_active == 0
-                if self.level_step == None and is_level_over:
-                    self.level_step = "score_level"
-                    self.sleep(1.5)
-                elif self.level_step == "score_level":
-                    self.score_level()
-                    self.level_step = "next_level"
-                    self.sleep(1.5)
-                elif self.level_step == "next_level":
-                    self.level_step = None
-                    self.next_level()
+                if lever_over:
+
+                    if self.level_step == None:
+                        self.level_step = "score_level"
+                        self.sleep(1.5)
+                    elif self.level_step == "score_level":
+                        self.score_level()
+                        self.level_step = "next_level"
+                        self.sleep(1.5)
+                    elif self.level_step == "next_level":
+                        self.level_step = None
+                        self.next_level()
 
 
         #
@@ -797,7 +832,7 @@ class Game:
         self.draw_items(self.alien)
         self.draw_items(self.explosion)
 
-        self.foreground.set_fields(level=self.active_level_n+1, score=self.score, game_over=self.game_over, debug=self.clock)
+        self.foreground.set_fields(level=self.active_level_n+1, score=self.score, game_over=self.game_over, debug=self.fps)
         self.foreground.draw(self.win)
 
         self.win.flush()
@@ -805,27 +840,50 @@ class Game:
 
 
     def is_game_active(self):
-        return not self.game_over.get() or \
-                self.missile.num_active.get() > 0 or \
-                self.explosion.num_active.get() > 0 or \
-                self.bomb.num_active.get() > 0 or \
-                self.plane.num_active.get() > 0 or \
-                self.alien.num_active.get()>0 or \
-                self.smartbomb.num_active.get() > 0
+        return self.game_over == False or \
+               self.missile.num_active > 0 or \
+               self.explosion.num_active > 0 or \
+               self.bomb.num_active > 0 or \
+               self.plane.num_active > 0 or \
+               self.alien.num_active > 0 or \
+               self.smartbomb.num_active > 0
 
     def game_loop(self):
 
+        frames = 0
+        loop_start = time.time()
+        extra_sleep = 0
+        wait_secs = 0
+
         while self.is_game_active():
 
-            start_time = time.time()
+            #
+            # run the game
+            #
+            start_time = time.time() - extra_sleep
             self.game_input()
             self.game_tick()
             self.game_draw()
             end_time = time.time()
 
+            #
+            # wait so we have consistent FPS in loop (note: sleep is slightly broken so measure extra sleep)
+            #
+            sleep_start = time.time()
             wait_secs = start_time + SECONDS_PER_TICK - end_time
             if wait_secs > 0:
                 time.sleep(wait_secs)
+            sleep_end = time.time()
+            extra_sleep = sleep_end - sleep_start - wait_secs #python sleep is longer than requested?1?
+
+            #
+            # statistics for tuning and debugging
+            #
+            frames = frames + 1
+            duration = time.time()-loop_start
+            if frames % 5 == 1:
+                self.fps = "fps: " + str(round(frames/duration,3)) + "  wait "+str(round(wait_secs,3))+" frames="+str(frames)
+
 
 xgame = Game()
 xgame.load_level(0)

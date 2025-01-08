@@ -151,6 +151,14 @@ class Word:
 
         return Word(self.word - o_num)
 
+    def __mul__(self, o):
+        if isinstance(o, int):
+            o_num = o
+        else:
+            o_num = o.word
+
+        return Word(int(self.word * o_num))
+
     def __truediv__(self, o):
         if isinstance(o, int):
             o_num = o
@@ -288,6 +296,9 @@ class WordDecimal:
     def abs(self):
         return WordDecimal(abs(self.worddec))
 
+    def get_word(self):
+        return Word(int(self.get()))
+
     def __str__(self):
         return str(self.get()) + " (word="+str(self.worddec)+")"
 
@@ -318,6 +329,8 @@ class WordDecimal:
     def __truediv__(self, o):
         if isinstance(o, int) or isinstance(o,float):
             o_num = o * 32
+        elif isinstance(o, Word):
+            o_num = o.word
         else:
             o_num = o.worddec
 
