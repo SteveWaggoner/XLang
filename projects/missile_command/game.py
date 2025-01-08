@@ -1,16 +1,11 @@
 #!/usr/bin/python3.9
 
-# https://stackoverflow.com/questions/15886455/simple-graphics-for-python
-from graphics import GraphWin, Rectangle, Point, Circle, Line, Text
 from playsound import playsound
 import time, math, sys
 
 from c6502 import Byte, Word, DWord, WordDecimal
+from kernal import Frame, Animation, Graphic, Window, FRAMES_PER_SECOND, SECONDS_PER_TICK, TICKS_PER_SECOND
 
-# try for about 60 FPS
-FRAMES_PER_SECOND=60
-SECONDS_PER_TICK=1.0 / FRAMES_PER_SECOND
-TICKS_PER_SECOND=int(1.0/SECONDS_PER_TICK)
 
 class Position:
     def __init__(self,x,y):
@@ -19,59 +14,28 @@ class Position:
     def __str__(self):
         return str(round(self.x.get(),2))+","+str(round(self.y.get(),2))
 
-class Frame:
-    def __init__(self, action, num=0, duration=0.1):
-        self.action   = action
-        self.num      = Word(num)
-        self.duration = Word(int(duration * TICKS_PER_SECOND))
 
-class Animation:
+class Action:
+    def set_radius(animation, frame):
+        animation.item.radius = frame.num
+    def destroy(animation, frame):
+        animation.item.destroy()
 
-    def __init__(self, item):
-        self.item    = item
-        self.frame_n = Byte(0)
-        self.sleep   = Byte(0)
-
-    def get_frame(self):
-        return None
-
-    def next_frame(self):
-        pass
-
-    def run_action(self, frame):
-        if frame.action == "radius":
-            self.item.radius.set(frame.num)
-        elif frame.action == "destroy":
-            self.item.destroy()
-
-    def tick(self):
-
-        frame = self.get_frame()
-        if frame:
-            if self.sleep == 0:
-                self.run_action(frame)
-                self.next_frame()
-                if frame.duration == 0:  #no duration goto next frame
-                    self.tick()
-                else:
-                    self.sleep = frame.duration - 1
-            else:
-                self.sleep = self.sleep - 1
 
 class ExplosionAnimation(Animation):
 
     frames = []
-    frames.append(Frame("radius", num=6))
-    frames.append(Frame("radius", num=10))
-    frames.append(Frame("radius", num=20))
-    frames.append(Frame("radius", num=18))
-    frames.append(Frame("radius", num=20))
-    frames.append(Frame("radius", num=18))
-    frames.append(Frame("radius", num=16))
-    frames.append(Frame("radius", num=14))
-    frames.append(Frame("radius", num=8))
-    frames.append(Frame("radius", num=4))
-    frames.append(Frame("destroy"))
+    frames.append(Frame(Action.set_radius, num=6))
+    frames.append(Frame(Action.set_radius, num=10))
+    frames.append(Frame(Action.set_radius, num=20))
+    frames.append(Frame(Action.set_radius, num=18))
+    frames.append(Frame(Action.set_radius, num=20))
+    frames.append(Frame(Action.set_radius, num=18))
+    frames.append(Frame(Action.set_radius, num=16))
+    frames.append(Frame(Action.set_radius, num=14))
+    frames.append(Frame(Action.set_radius, num=8))
+    frames.append(Frame(Action.set_radius, num=4))
+    frames.append(Frame(Action.destroy))
 
     def get_frame(self):
         return ExplosionAnimation.frames[self.frame_n.get()]
@@ -82,54 +46,16 @@ class ExplosionAnimation(Animation):
 class PlaneAnimation(Animation):
 
     frames = []
-    frames.append(Frame("radius", num=5, duration=3))
-    frames.append(Frame("radius", num=6, duration=5))
-    frames.append(Frame("radius", num=5, duration=1))
-    frames.append(Frame("radius", num=4, duration=1))
+    frames.append(Frame(Action.set_radius, num=5, duration=3))
+    frames.append(Frame(Action.set_radius, num=6, duration=5))
+    frames.append(Frame(Action.set_radius, num=5, duration=1))
+    frames.append(Frame(Action.set_radius, num=4, duration=1))
 
     def get_frame(self):
         return PlaneAnimation.frames[self.frame_n.get()]
 
     def next_frame(self):
         self.frame_n = ( self.frame_n + 1 ) % len(PlaneAnimation.frames)
-
-
-class Graphic:
-
-    def __init__(self):
-        # graphical object
-        self.graphic = []
-        self.animation = None
-
-    def undraw(self):
-        for g in self.graphic:
-            g.undraw()
-        self.graphic = []
-
-    def draw(self, win):
-
-        self.undraw()
-        self.render()
-        for g in self.graphic:
-            g.draw(win)
-
-    def add_line(self, x1,y1,x2,y2):
-        self.graphic.append(Line(Point(x1.get(), y1.get()),
-                                 Point(x2.get(), y2.get())))
-
-    def add_circle(self, x,y,radius):
-        self.graphic.append(Circle(Point(x.get(), y.get()), radius.get()))
-
-    def add_rectangle(self, x1,y1,x2,y2):
-        self.graphic.append(Rectangle(Point(x1.get(), y1.get()),
-                                      Point(x2.get(), y2.get())))
-
-
-    def add_text(self, x,y,text):
-        self.graphic.append(Text(Point(x.get(), y.get()), text))
-
-    def render(self):
-        pass
 
 
 class Item(Graphic):
@@ -528,8 +454,7 @@ class Game:
         self.init_cities()
         self.init_batteries()
 
-        self.win = GraphWin(width = 960, height = 600, autoflush = False) # create a window
-        self.win.setCoords(0, 200, 320, 0) # set the coordinates of the window (mimic VGA)
+        self.win = Window() # create a window
 
 
     def init_land(self):
@@ -758,7 +683,7 @@ class Game:
                 level_over = self.active_level.enemy[-1].launch_time < self.clock \
                         and self.bomb.num_active == 0 \
                         and self.plane.num_active == 0
-                if lever_over:
+                if level_over:
 
                     if self.level_step == None:
                         self.level_step = "score_level"
@@ -813,14 +738,14 @@ class Game:
                 if item.animation:
                     item.animation.tick()
                     if item.active == True:
-                        item.draw(self.win)
+                        item.draw_to(self.win)
                 else:
-                    item.draw(self.win)
+                    item.draw_to(self.win)
 
 
     def game_draw(self):
 
-        self.background.draw(self.win)
+        self.background.draw_to(self.win)
 
         self.draw_items(self.land)
         self.draw_items(self.city)
@@ -833,7 +758,7 @@ class Game:
         self.draw_items(self.explosion)
 
         self.foreground.set_fields(level=self.active_level_n+1, score=self.score, game_over=self.game_over, debug=self.fps)
-        self.foreground.draw(self.win)
+        self.foreground.draw_to(self.win)
 
         self.win.flush()
         self.win.redraw()

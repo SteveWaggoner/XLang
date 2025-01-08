@@ -7,12 +7,16 @@ import time, math, sys
 
 from c6502 import Byte, Word, DWord, WordDecimal
 
+# try for about 60 FPS
+FRAMES_PER_SECOND=60
+SECONDS_PER_TICK=1.0 / FRAMES_PER_SECOND
+TICKS_PER_SECOND=int(1.0/SECONDS_PER_TICK)
 
 class Frame:
-    def __init__(self, action, num=0, duration_ticks=1):
+    def __init__(self, action, num=0, duration=0.1):
         self.action   = action
         self.num      = Word(num)
-        self.duration = Word(duration_ticks)
+        self.duration = Word(int(duration * TICKS_PER_SECOND))
 
 class Animation:
 
@@ -67,18 +71,18 @@ class Graphic:
             g.draw(win.win)
 
 
-    def draw_line(self, x1,y1,x2,y2):
+    def add_line(self, x1,y1,x2,y2):
         self.graphic.append(Line(Point(x1.get(), y1.get()),
                                  Point(x2.get(), y2.get())))
 
-    def draw_circle(self, x,y,radius):
+    def add_circle(self, x,y,radius):
         self.graphic.append(Circle(Point(x.get(), y.get()), radius.get()))
 
-    def draw_rectangle(self, x1,y1,x2,y2):
+    def add_rectangle(self, x1,y1,x2,y2):
         self.graphic.append(Rectangle(Point(x1.get(), y1.get()),
                                       Point(x2.get(), y2.get())))
 
-    def draw_text(self, x,y,text):
+    def add_text(self, x,y,text):
         self.graphic.append(Text(Point(x.get(), y.get()), text))
 
     def render(self):
@@ -89,6 +93,17 @@ class Window:
     def __init__(self):
         self.win = GraphWin(width = 960, height = 600, autoflush = False) # create a window
         self.win.setCoords(0, 200, 320, 0) # set the coordinates of the window (mimic VGA)
+
+    def checkMouse(self):
+        return self.win.checkMouse()
+
+    def checkKey(self):
+        return self.win.checkKey()
+
+    def redraw(self):
+        self.win.redraw()
+    def flush(self):
+        self.win.flush()
 
     def wait_for_key(self):
         self.win.getKey()
