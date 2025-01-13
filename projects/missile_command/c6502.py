@@ -2,7 +2,6 @@
 
 import sys
 
-
 #
 # purpose of these is to mimic C structures in Python to see
 # if the logic works within the numeric ranges of the data types
@@ -17,11 +16,15 @@ import sys
 #
 
 #
-# WordDecimal is a tiny decimal for vectors
+# WordDecimal is a tiny fixed decimal for vectors (11bits/5bits)
 #
 
 #
-# DWordDecimal is like a float to 3 decimal places
+# DWordDecimal is a big fixed decimal (22bits/10bits) ... hopefully don't need this
+#
+
+#
+# WordFloat is just for testing
 #
 
 
