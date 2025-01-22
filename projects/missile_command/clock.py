@@ -7,6 +7,14 @@ from list import Item, List
 
 class Alarm(Item):
 
+    def __init__(self):
+        super().__init__()
+
+#    def destroy(self):
+#        super().__init__()
+#        print("destry "+str(self))
+
+
     def set(self, clock, alarm_ticks, callback, param):
         self.clock = clock
         self.alarm_ticks = alarm_ticks
@@ -14,7 +22,7 @@ class Alarm(Item):
         self.param = param
 
     def check(self):
-        if self.active:
+        if self.active == True:
             if self.alarm_ticks < self.clock.ticks:
                 if self.param is None:
                     self.callback()

@@ -47,6 +47,23 @@ class Position:
         return velocity
 
 
+class Action:
+    def __init__(self, callback, num=0, duration=0.1):
+        self.callback = callback
+        self.param    = Word(num)
+        self.duration = Word(int(duration * Clock.TICKS_PER_SECOND))
+
+    def run(self, obj):
+        self.callback(obj, self)
+
+    #example callbacks actions
+    def set_radius(obj, action):
+        obj.radius = action.param
+    def destroy(obj, action):
+        obj.destroy()
+
+
+
 class Object(Item):
 
     def __init__(self):
@@ -68,19 +85,24 @@ class Object(Item):
         self.radius = Word(1)   # all enemys have a radius so just default
 
         self.route = None
-        self.route_n = Byte(0)
+        self.route_index = Byte(0)
         self.last_dodge = Word(0)
         self.destroy_at_dest = Byte(False)
 
         # graphical object
         self.graphic = []
-        self.animation = None
+        # behavior
+        self.actions = None
+        self.action_index = Byte(0)
+        self.action_sleep = Byte(0)
 
     def __str__(self):
         return self.__class__.__name__ + "(pos="+str(self.pos)+", w="+str(self.width)+", h="+str(self.height)+", r="+str(self.radius) \
             +", dest="+str(self.dest)+", velocity="+str(self.velocity)+", dist="+str(self.distance)+")"
 
-
+    #
+    # for object collision detection
+    #
     def collide_circles(self, other):
         diff_x = (self.pos.x - other.pos.x).abs()
         if diff_x < self.radius + other.radius:
@@ -95,6 +117,9 @@ class Object(Item):
                 return True
         return False
 
+    #
+    # for object motion
+    #
     def set_position(self, start, dest=None, speed=None, width=None, height=None):
 
         self.start = start
@@ -109,11 +134,8 @@ class Object(Item):
             self.speed = (speed / Clock.TICKS_PER_SECOND)  #speed is converted from pixels_per_second to pixels_per_tick
             self.update_vectors()
 
-
     def update_vectors(self):
         self.velocity = self.pos.calculate_velocity_to(self.dest, self.speed)
-        print(f"self.pos = {self.pos}, self.dest = {self.dest}, self.speed={self.speed}, self.velocity = {self.velocity}")
-
 
     def move(self):
         self.pos.x = self.pos.x + self.velocity.x
@@ -121,15 +143,49 @@ class Object(Item):
         self.last_distance = self.distance
         self.distance = self.pos.distance_to(self.dest)
 
+    #
+    # for object targeting
+    #
+    def get_target_pos(self):
+        #get center mass of object ("pos" is anchor top upper corner for rectangles so more to center bottom)
+        if self.width > 0:
+            return Position(self.pos.x + (self.width/2), self.pos.y + self.height)
+        else:
+            return self.pos
 
-    def destroy(self):
-        super().destroy()
-        self.undraw()
+    #
+    # for object behavior (e.g. explosion morphing, etc.)
+    #
+    def next_action(self):
+        self.action_index = ( self.action_index + 1 ) % len(self.actions)
 
+    def action_tick(self):
+
+        if self.actions is not None:
+
+            action = self.actions[self.action_index.get()]
+            if self.action_sleep > 0:
+                self.action_sleep -= 1
+            else:
+                action.run(self)
+                self.action_sleep = action.duration
+                self.next_action()
+                if self.action_sleep == 0:
+                    self.action_tick()  # immediately run next action if zero duration
+
+
+
+
+    #
+    # for object display
+    #
     def render(self,win):
         # dummy
         self.add_circle(self.start.x, self.start.y, Byte(3))
 
+    def destroy(self):
+        super().destroy()
+        self.undraw()
 
     def undraw(self):
         for g in self.graphic:

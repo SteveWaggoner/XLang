@@ -1,52 +1,9 @@
 #!/usr/bin/python3.9
 
 from c6502 import Byte, Word, WordDecimal
-from object import Position, Object
-from animation import Animation, Frame
+from object import Position, Action, Object
+#from animation import Animation, Frame
 from clock import Clock
-
-class Action:
-    def set_radius(animation, frame):
-        animation.item.radius = frame.num
-    def destroy(animation, frame):
-        animation.item.destroy()
-
-
-class ExplosionAnimation(Animation):
-
-    frames = []
-    frames.append(Frame(Action.set_radius, num=6))
-    frames.append(Frame(Action.set_radius, num=10))
-    frames.append(Frame(Action.set_radius, num=20))
-    frames.append(Frame(Action.set_radius, num=18))
-    frames.append(Frame(Action.set_radius, num=20))
-    frames.append(Frame(Action.set_radius, num=18))
-    frames.append(Frame(Action.set_radius, num=16))
-    frames.append(Frame(Action.set_radius, num=14))
-    frames.append(Frame(Action.set_radius, num=8))
-    frames.append(Frame(Action.set_radius, num=4))
-    frames.append(Frame(Action.destroy))
-
-    def get_frame(self):
-        return ExplosionAnimation.frames[self.frame_n.get()]
-
-    def next_frame(self):
-        self.frame_n = ( self.frame_n + 1 ) % len(ExplosionAnimation.frames)
-
-class PlaneAnimation(Animation):
-
-    frames = []
-    frames.append(Frame(Action.set_radius, num=5, duration=3))
-    frames.append(Frame(Action.set_radius, num=6, duration=5))
-    frames.append(Frame(Action.set_radius, num=5, duration=1))
-    frames.append(Frame(Action.set_radius, num=4, duration=1))
-
-    def get_frame(self):
-        return PlaneAnimation.frames[self.frame_n.get()]
-
-    def next_frame(self):
-        self.frame_n = ( self.frame_n + 1 ) % len(PlaneAnimation.frames)
-
 
 
 
@@ -75,7 +32,13 @@ class Object_SmartBomb(Object):
 class Object_Plane(Object):
     def __init__(self):
         super().__init__()
-        self.animation = PlaneAnimation(self)
+
+        self.actions = []
+        self.actions.append(Action(Action.set_radius, num=3, duration=0.2))
+        self.actions.append(Action(Action.set_radius, num=6, duration=0.2))
+        self.actions.append(Action(Action.set_radius, num=9, duration=0.2))
+        self.actions.append(Action(Action.set_radius, num=6, duration=0.2))
+
         self.destroy_at_dest.set(True)
 
     def render(self,win):
@@ -108,7 +71,20 @@ class Object_Mario(Object):
 class Object_Explosion(Object):
     def __init__(self):
         super().__init__()
-        self.animation = ExplosionAnimation(self)
+
+        self.actions = []
+        self.actions.append(Action(Action.set_radius, num=6))
+        self.actions.append(Action(Action.set_radius, num=10))
+        self.actions.append(Action(Action.set_radius, num=20))
+        self.actions.append(Action(Action.set_radius, num=18))
+        self.actions.append(Action(Action.set_radius, num=20))
+        self.actions.append(Action(Action.set_radius, num=18))
+        self.actions.append(Action(Action.set_radius, num=16))
+        self.actions.append(Action(Action.set_radius, num=14))
+        self.actions.append(Action(Action.set_radius, num=8))
+        self.actions.append(Action(Action.set_radius, num=4))
+        self.actions.append(Action(Action.destroy))
+
 
     def render(self,win):
         self.add_circle( self.pos.x, self.pos.y, self.radius)
@@ -117,6 +93,9 @@ class Object_Battery(Object):
     def __init__(self):
         super().__init__()
         self.num_missiles = Byte(0)
+
+    def destroy(self):
+        self.num_missiles.set(0)
 
     def render(self,win):
         self.add_rectangle(self.pos.x, self.pos.y,
@@ -129,8 +108,11 @@ class Object_City(Object):
         super().__init__()
         self.destroyed = Byte(False)
 
+    def destroy(self):
+        self.destroyed.set(True)
+
     def render(self,win):
-        if self.destroyed.get():
+        if self.destroyed == True:
             self.add_rectangle(self.pos.x, self.pos.y + (self.height-1),
                                self.pos.x+self.width, self.pos.y + self.height)
         else:
@@ -138,24 +120,10 @@ class Object_City(Object):
                                 self.pos.x + self.width, self.pos.y + self.height)
 
 class Object_Land(Object):
+
     def render(self,win):
         self.add_rectangle(self.pos.x, self.pos.y,
                            self.pos.x + self.width, self.pos.y + self.height)
-
-
-class UI(Object):
-
-    def set_fields(self, level, score, game_over, debug):
-        self.level = level
-        self.score = score
-        self.game_over = game_over
-        self.debug = debug
-
-    def render(self,win):
-        self.add_text(Byte(60), Byte(20), str(self.debug))
-        self.add_text(Byte(180), Byte(10), "level: "+str(self.level)+"   score:" + str(self.score))
-        if self.game_over.get():
-            self.add_text(Byte(180), Byte(100), "GAME OVER")
 
 
 class Enemy:
