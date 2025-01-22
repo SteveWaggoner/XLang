@@ -11,10 +11,9 @@ class Item:
         self.active = Byte(False)
 
     def destroy(self):
-        if self.active:
+        if self.active == True:
             self.list.num_active = self.list.num_active - 1
-            self.active = False
-
+            self.active.set(False)
 
 
 #
@@ -23,15 +22,19 @@ class Item:
 
 class List:
 
-    def __init__(self, item_class, max_items, active=0):
+    def __init__(self, item_class, max_items, active=False):
 
-        self.num_active = Byte(0)
+        if active == True:
+            self.num_active = Byte(max_items)
+        else:
+            self.num_active = Byte(0)
+
         self.next_alloc = Byte(0)
         self.items = []
         for x in range(max_items):
             i = item_class()
             i.list = self
-            i.active = active
+            i.active.set(active)
             self.items.append(i)
 
     def __getitem__(self, key):
@@ -44,7 +47,7 @@ class List:
 
         while i < len(self.items):
             if self.items[n].active == False:
-                self.items[n].active = True
+                self.items[n].active.set(True)
                 self.next_alloc.set( ( n + 1 ) % len(self.items) )
                 self.num_active.set( self.num_active + 1 )
                 print("created "+str(self.items[n].__class__.__name__)+" "+str(n))
@@ -58,14 +61,15 @@ class List:
 
     def clear(self):
         for i in self.items:
-            i.destroy()
+            if i.active.get():
+                i.destroy()
 
     def get_collisions(self, other, has_collision_function):
         hits = []
         for a in self.items:
-            if a.active:
+            if a.active == True:
                 for b in other.items:
-                    if b.active:
+                    if b.active == True:
                         if has_collision_function(a,b):
                             hits.append((a,b))
         return hits

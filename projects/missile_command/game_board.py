@@ -5,6 +5,8 @@ from game_objects import *
 from list import List
 from game_levels import Game_Levels
 
+import random
+random.seed(123) # make game deterministic
 
 class Game_Board:
 
@@ -103,7 +105,6 @@ class Game_Board:
                 for game_obj in game_objs.items:
                     if game_obj.active == True:
                         active_items.append(game_obj)
-        import random
         return random.choice(active_items)
 
 
