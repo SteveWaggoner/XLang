@@ -2,9 +2,7 @@
 
 from c6502 import Byte, Word, WordDecimal
 from object import Position, Action, Object
-#from animation import Animation, Frame
 from clock import Clock
-
 
 
 
@@ -93,6 +91,7 @@ class Object_Battery(Object):
     def __init__(self):
         super().__init__()
         self.num_missiles = Byte(0)
+        self.selected = Byte(0)
 
     def destroy(self):
         self.num_missiles.set(0)
@@ -100,6 +99,9 @@ class Object_Battery(Object):
     def render(self,win):
         self.add_rectangle(self.pos.x, self.pos.y,
                            self.pos.x + self.width, self.pos.y + self.height)
+        if self.selected == True:
+            self.add_rectangle(self.pos.x+2, self.pos.y+2,
+                               self.pos.x + self.width-2, self.pos.y + self.height-2)
         self.add_text(self.pos.x + self.width/2, self.pos.y + self.height/2, str(self.num_missiles))
 
 

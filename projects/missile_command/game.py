@@ -6,7 +6,7 @@ from playsound import playsound
 from c6502 import Byte
 
 from game_levels import Game_Levels
-from game_board import Game_Board
+from game_board import Game_Board, Game_Input
 
 class UI(Object):
 
@@ -23,11 +23,14 @@ class UI(Object):
             self.add_text(Byte(180), Byte(100), "GAME OVER")
 
 
+
+
 class Game:
 
     def __init__(self):
 
         self.board = Game_Board()
+        self.input = Game_Input(self.board)
 
         self.board.on_load_level       = lambda: playsound("sounds/alert.mp3", False)
         self.board.on_launch_missile   = lambda: playsound("sounds/missile-fire.mp3", False)
@@ -41,17 +44,28 @@ class Game:
 
     def game_input(self):
 
+        if self.board.level_index == 0:
+            self.game_user_input()
+        else:
+            self.game_auto_input()
+
+
+    def game_user_input(self):
+
         pnt = self.win.checkMouse()
         if not pnt is None:
-            self.board.launch_missile(int(pnt.x), int(pnt.y), 80)
+            self.input.launch_missile(int(pnt.x), int(pnt.y))
 
         key = self.win.checkKey()
         if key == "1":
-            self.board.select_battery(0)
+            self.input.select_battery(0)
         if key == "2":
-            self.board.select_battery(1)
+            self.input.select_battery(1)
         if key == "3":
-            self.board.select_battery(2)
+            self.input.select_battery(2)
+
+    def game_auto_input(self):
+        self.input.play_move()
 
 
 

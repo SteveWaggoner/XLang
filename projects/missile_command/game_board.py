@@ -8,6 +8,44 @@ from game_levels import Game_Levels
 import random
 random.seed(123) # make game deterministic
 
+class Game_Input:
+
+    def __init__(self, board):
+        self.board = board
+        self.moves = []
+        self.move_index = 0
+        self.last_clock_ticks = 0
+
+    def select_battery(self, battery_index):
+        self.moves.append((self.board.clock.ticks.get(),1, battery_index ))
+        self.board.select_battery(battery_index)
+
+    def launch_missile(self, x, y):
+        self.moves.append((self.board.clock.ticks.get(),2, (x,y)))
+        self.board.launch_missile(x,y)
+
+
+    def play_move(self):
+
+        if self.board.clock.ticks.get() < self.last_clock_ticks:
+            #rewind
+            self.move_index = 0
+        self.last_clock_ticks = self.board.clock.ticks.get()
+
+        while self.move_index < len(self.moves):
+            ticks, action, param = self.moves[self.move_index]
+            if ticks == self.board.clock.ticks.get():
+                if action == 1:
+                    self.board.select_battery(param)
+                elif action == 2:
+                    self.board.launch_missile(param[0],param[1])
+                self.move_index += 1
+            else:
+                break
+
+
+
+
 class Game_Board:
 
     def __init__(self):
@@ -66,6 +104,8 @@ class Game_Board:
 
     def load_level(self, level_index):
 
+        random.seed(123) #replay a level has same actions by enemy
+
         level_index = level_index % len(Game_Levels.levels)
 
         self.clock.reset()
@@ -82,6 +122,7 @@ class Game_Board:
 
         for battery in self.battery.items:
             battery.num_missiles.set(10)
+        self.select_battery(1)
 
     def spawn_enemies(self):
 
@@ -112,12 +153,17 @@ class Game_Board:
         game_obj = Game_Board.get_random([self.battery, self.city])
         return game_obj.get_target_pos()
 
+
     def select_battery(self, battery_index):
         self.battery_index.set(battery_index)
+        for n in range(3):
+            self.battery.items[n].selected.set(False)
+        self.battery.items[battery_index].selected.set(True)
 
 
-    def launch_missile(self, dest_x, dest_y, speed):
+    def launch_missile(self, dest_x, dest_y):
 
+        speed   = 80 # todo: from level
         battery = self.battery[self.battery_index.get()]
 
         if dest_y > battery.pos.y:
@@ -310,7 +356,7 @@ class Game_Board:
     def next_level(self):
 
         print("next level")
-        self.load_level(self.level_index.get() + 1)
+        self.load_level(self.level_index.get()+1)
         self.switching_to_next_level.set(False)
 
 
