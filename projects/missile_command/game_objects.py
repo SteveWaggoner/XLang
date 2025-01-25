@@ -5,26 +5,17 @@ from object import Position, Action, Object
 from clock import Clock
 
 
-
 class Object_Missile(Object):
     def __init__(self):
         super().__init__()
         self.destroy_at_dest.set(True)
 
-    def render(self,win):
-        self.add_line(self.start.x, self.start.y, self.pos.x, self.pos.y)
-        self.add_circle(self.pos.x, self.pos.y, Byte(1))
 
 class Object_Bomb(Object):
-    def render(self,win):
-        self.add_line(self.start.x, self.start.y, self.pos.x, self.pos.y)
-        self.add_circle(self.pos.x, self.pos.y, Byte(1))
+    pass
 
 class Object_SmartBomb(Object):
-    def render(self,win):
-        self.add_line(self.pos.x-2, self.pos.y-2, self.pos.x+2, self.pos.y+2)
-        self.add_line(self.pos.x+2, self.pos.y-2, self.pos.x-2, self.pos.y+2)
-        self.add_circle(self.pos.x, self.pos.y, Byte(1))
+    pass
 
 
 class Object_Plane(Object):
@@ -39,8 +30,6 @@ class Object_Plane(Object):
 
         self.destroy_at_dest.set(True)
 
-    def render(self,win):
-        self.add_circle(self.pos.x, self.pos.y, self.radius)
 
 class Object_Alien(Object):
     def __init__(self):
@@ -49,21 +38,13 @@ class Object_Alien(Object):
         self.height.set(3)
         self.destroy_at_dest.set(1)
 
-    def render(self,win):
-        self.add_rectangle(self.pos.x, self.pos.y, self.pos.x+self.width, self.pos.y+self.height)
 
 class Object_Mario(Object):
     def __init__(self):
         super().__init__()
         self.width.set(3)
         self.height.set(3)
-       # self.destroy_at_dest.set(1)
 
-    def render(self,win):
-        self.add_rectangle(self.pos.x, self.pos.y, self.pos.x+self.width, self.pos.y+self.height)
-
-        win.background.img.fill_rect(int(self.pos.x.get()), int(self.pos.y.get()), int(self.width.get()), int(self.height.get()), "#F0D30F")
-        pass
 
 
 class Object_Explosion(Object):
@@ -84,8 +65,6 @@ class Object_Explosion(Object):
         self.actions.append(Action(Action.destroy))
 
 
-    def render(self,win):
-        self.add_circle( self.pos.x, self.pos.y, self.radius)
 
 class Object_Battery(Object):
     def __init__(self):
@@ -96,14 +75,6 @@ class Object_Battery(Object):
     def destroy(self):
         self.num_missiles.set(0)
 
-    def render(self,win):
-        self.add_rectangle(self.pos.x, self.pos.y,
-                           self.pos.x + self.width, self.pos.y + self.height)
-        if self.selected == True:
-            self.add_rectangle(self.pos.x+2, self.pos.y+2,
-                               self.pos.x + self.width-2, self.pos.y + self.height-2)
-        self.add_text(self.pos.x + self.width/2, self.pos.y + self.height/2, str(self.num_missiles))
-
 
 class Object_City(Object):
     def __init__(self):
@@ -113,19 +84,9 @@ class Object_City(Object):
     def destroy(self):
         self.destroyed.set(True)
 
-    def render(self,win):
-        if self.destroyed == True:
-            self.add_rectangle(self.pos.x, self.pos.y + (self.height-1),
-                               self.pos.x+self.width, self.pos.y + self.height)
-        else:
-            self.add_rectangle(self.pos.x, self.pos.y,
-                                self.pos.x + self.width, self.pos.y + self.height)
 
 class Object_Land(Object):
-
-    def render(self,win):
-        self.add_rectangle(self.pos.x, self.pos.y,
-                           self.pos.x + self.width, self.pos.y + self.height)
+    pass
 
 
 class Enemy:

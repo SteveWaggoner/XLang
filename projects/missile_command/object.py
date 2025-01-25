@@ -2,10 +2,7 @@
 
 import math
 
-# https://stackoverflow.com/questions/15886455/simple-graphics-for-python
-from graphics import Rectangle, Point, Circle, Line, Text, Image
 from c6502 import Byte, Word, WordDecimal
-
 from list import Item, List
 from clock import Clock
 
@@ -89,8 +86,6 @@ class Object(Item):
         self.last_dodge = Word(0)
         self.destroy_at_dest = Byte(False)
 
-        # graphical object
-        self.graphic = []
         # behavior
         self.actions = None
         self.action_index = Byte(0)
@@ -173,51 +168,6 @@ class Object(Item):
                 if self.action_sleep == 0:
                     self.action_tick()  # immediately run next action if zero duration
 
-
-
-
-    #
-    # for object display
-    #
-    def render(self,win):
-        # dummy
-        self.add_circle(self.start.x, self.start.y, Byte(3))
-
-    def destroy(self):
-        super().destroy()
-        self.undraw()
-
-    def undraw(self):
-        for g in self.graphic:
-            g.undraw()
-        self.graphic = []
-
-    def draw_to(self, win):
-
-        self.undraw()
-        self.render(win)
-        for g in self.graphic:
-            g.draw(win.win)
-
-    def add_line(self, x1,y1,x2,y2):
-        self.graphic.append(Line(Point(x1.get(), y1.get()),
-                                 Point(x2.get(), y2.get())))
-
-    def add_circle(self, x,y,radius):
-        self.graphic.append(Circle(Point(x.get(), y.get()), radius.get()))
-
-    def add_rectangle(self, x1,y1,x2,y2):
-        self.graphic.append(Rectangle(Point(x1.get(), y1.get()),
-                                      Point(x2.get(), y2.get())))
-
-    def add_text(self, x,y,text):
-        self.graphic.append(Text(Point(x.get(), y.get()), text))
-
-    def add_image(self, image):
-        self.graphic.append(image)
-
-    def add_bitmap(self, bitmap):
-        self.graphic.append(bitmap.get_image())
 
 
 

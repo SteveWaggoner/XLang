@@ -21,8 +21,10 @@ class Game_Input:
         self.board.select_battery(battery_index)
 
     def launch_missile(self, x, y):
-        self.moves.append((self.board.clock.ticks.get(),2, (x,y)))
-        self.board.launch_missile(x,y)
+        px = int(x)
+        py = int(y)
+        self.moves.append((self.board.clock.ticks.get(),2, (px,py)))
+        self.board.launch_missile(px,py)
 
 
     def play_move(self):
@@ -42,6 +44,15 @@ class Game_Input:
                 self.move_index += 1
             else:
                 break
+
+
+class Game_UI(Object):
+
+    def set_fields(self, level, score, game_over, debug):
+        self.level = level
+        self.score = score
+        self.game_over = game_over
+        self.debug = debug
 
 
 
@@ -166,7 +177,7 @@ class Game_Board:
         speed   = 80 # todo: from level
         battery = self.battery[self.battery_index.get()]
 
-        if dest_y > battery.pos.y:
+        if battery.pos.y < dest_y:
             return False
 
         if battery.num_missiles < 1:

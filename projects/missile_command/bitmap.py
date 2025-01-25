@@ -110,8 +110,6 @@ class Bitmap:
 
 
 
-
-
 def rgb2hex(r,g,b):
     return "#{:02x}{:02x}{:02x}".format(r,g,b)
 
@@ -120,104 +118,6 @@ def hex2rgb(hexcode):
         return (0,0,0)
     h = hexcode.lstrip("#")
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-
-class Bitmap_old:
-
-    def __init__(self, path=None, width=None, height=None, photo_img=None):
-
-        if photo_img is not None:
-            self.photo_img = photo_img
-        else:
-
-            from graphics import _root
-            try:  # import as appropriate for 2.x vs. 3.x
-                import tkinter as tk
-            except:
-                import Tkinter as tk
-
-            if path is None:
-                self.photo_img = tk.PhotoImage(master=_root, width=width, height=height)
-            else:
-                self.photo_img = tk.PhotoImage(master=_root, file=path)
-
-
-    def resized_image(self, scale_x, scale_y):
-
-        resized_image = self.photo_img.copy()
-        return Bitmap(photo_img=resized_image.zoom(scale_x, scale_y))
-
-
-    def width(self):
-        return self.photo_img.width()
-
-    def height(self):
-        return self.photo_img.height()
-
-
-    def get_pixel(self, x, y):
-        """Returns a list [r,g,b] with the RGB color values for pixel (x,y)
-        r,g,b are in range(256)
-
-        """
-
-        color = self.photo_img.get((x,y))
-        red, green, blue = color
-        color = rgb2hex(red,blue,green)
-
-        return color
-
-
-    def put_pixel(self, x, y, color, mode="copy"):
-        """Sets pixel (x,y) to the given color
-
-        """
-
-        if x < 0 or y < 0 or color is None:
-            return
-
-        if mode == "xor":
-            prev_color = self.get_pixel(x,y)
-            prev_r,prev_g,prev_b = hex2rgb(prev_color)
-            r,g,b = hex2rgb(color)
-            xor_color = rgb2hex(prev_r^r, prev_g^g, prev_b^b)
-            color = xor_color
-
-        self.photo_img.put(color, (x, y))
-
-
-    def get_block(self, start_x, start_y, width, height):
-
-        pixels = []
-        for row in range(height):
-            pixel_row = []
-            for col in range(width):
-                pixel_row.append(self.get_pixel(start_x+col, start_y+row))
-            pixels.append(pixel_row)
-
-        return pixels
-
-    def put_block(self,x,y,pixels,mode="copy",flip_vert=False, flip_hort=False):
-        for row in range(len(pixels)):
-            for col in range(len(pixels[0])):
-                if flip_vert:
-                    i = len(pixels) - row - 1
-                else:
-                    i = row
-
-                if flip_hort:
-                    j = len(pixels[0]) - col - 1
-                else:
-                    j = col
-
-                self.put_pixel(x+col,y+row, pixels[i][j], mode)
-
-    def fill_rect(self, x,y,width,height,color):
-        for i in range(width):
-            for j in range(height):
-                self.put_pixel(x+i,y+j,color)
-
-
 
 
 
