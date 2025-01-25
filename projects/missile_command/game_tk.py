@@ -2,8 +2,6 @@
 
 from graphics import GraphWin, Point, Image, Rectangle, Circle, Line, Text
 from c6502 import Byte, Word, WordDecimal
-from object import Position, Action, Object
-from clock import Clock
 
 import bitmap
 from playsound import playsound
