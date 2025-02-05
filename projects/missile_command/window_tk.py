@@ -10,7 +10,7 @@
 #
 
 
-from graphics import GraphWin, Point, Image
+from graphics import GraphWin, Point, Image, Rectangle, Circle, Line, Text
 import time, math, sys
 
 from list import Item, List
@@ -200,6 +200,7 @@ class Window:
     def __init__(self, mode="VGA"):
         self.set_mode(mode)
         self.sprites = List(Sprite,15)
+        self.graphic = []
 
     def set_mode(self,mode):
 
@@ -246,6 +247,40 @@ class Window:
 
     def wait_for_key(self):
         self.win.getKey()
+
+    # helper routines
+    def draw_line(self, x1,y1, x2,y2):
+        self.graphic.append(Line(Point(x1.get(),y1.get()), Point(x2.get(), y2.get())))
+
+    def draw_circle(self, x, y, radius):
+        self.graphic.append(Circle(Point(x.get(), y.get()), radius.get()))
+
+    def draw_rectangle(self, x1, y1, x2, y2):
+        self.graphic.append(Rectangle(Point(x1.get(), y1.get()), Point(x2.get(), y2.get())))
+
+    def draw_text(self, x, y, text):
+        self.graphic.append(Text(Point(x.get(), y.get()), text))
+
+    def start_draw(self):
+        for g in self.graphic:
+            g.undraw()
+        self.graphic = []
+
+        if True:
+            self.draw_background()
+
+
+    def finish_draw(self):
+        for g in self.graphic:
+            g.draw(self.win)
+        self.flush()
+
+
+    def check_key(self):
+        return self.checkKey()
+
+    def check_mouse(self):
+        return self.checkMouse()
 
 
 

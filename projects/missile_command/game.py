@@ -2,7 +2,10 @@
 
 from game_levels import Game_Levels
 from game_board import Game_Board, Game_Input, Game_UI
-from game_tk import Display, Sound
+from game_display import Display, Sound
+
+import window_tk
+import window_sdl2
 
 
 class Game:
@@ -18,7 +21,8 @@ class Game:
         self.board.on_explode_friendly = lambda: Sound.play("explode_friendly")
 
         self.ui  = Game_UI()
-        self.display = Display(self.board.clock)
+        #self.display = Display(window_tk.Window())
+        self.display = Display(window_sdl2.Window())
 
 
 
