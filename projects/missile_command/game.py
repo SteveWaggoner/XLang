@@ -22,7 +22,7 @@ class Game:
 
         self.ui  = Game_UI()
         #self.display = Display(window_tk.Window())
-        self.display = Display(window_sdl2.Window())
+        self.display = Display(window_sdl2.Window(mode="VGA"))
 
 
 
@@ -37,15 +37,15 @@ class Game:
     def game_user_input(self):
 
         pnt = self.display.check_mouse()
-        if not pnt is None:
+        if pnt:
             self.input.launch_missile(pnt.x, pnt.y)
 
         key = self.display.check_key()
-        if key == "1":
+        if key == 49: #"1"
             self.input.select_battery(0)
-        if key == "2":
+        if key == 50: #"2"
             self.input.select_battery(1)
-        if key == "3":
+        if key == 51: #"3"
             self.input.select_battery(2)
 
     def game_auto_input(self):
