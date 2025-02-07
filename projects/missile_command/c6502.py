@@ -303,7 +303,7 @@ class WordDecimal:
         return Word(int(self.get()))
 
     def __str__(self):
-        return str(self.get()) + " (word="+str(self.worddec)+")"
+        return f"WordDecimal(val={self.get()}, word={self.worddec})"
 
     def __add__(self, o):
         if isinstance(o, int):

@@ -22,7 +22,7 @@ class Game:
 
         self.ui  = Game_UI()
         #self.display = Display(window_tk.Window())
-        self.display = Display(window_sdl2.Window(mode="VGA"))
+        self.display = Display(window_sdl2.Window("Missile Command", mode="VGA"))
 
 
 

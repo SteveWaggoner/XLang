@@ -50,7 +50,7 @@ class List:
                 self.items[n].active.set(True)
                 self.next_alloc.set( ( n + 1 ) % len(self.items) )
                 self.num_active.set( self.num_active + 1 )
-                print("created "+str(self.items[n].__class__.__name__)+" "+str(n))
+             #   print("created "+str(self.items[n].__class__.__name__)+" "+str(n))
                 return self.items[n]
             i = i + 1
             n = (n + 1) % len(self.items)

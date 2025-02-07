@@ -57,37 +57,99 @@ class MouseClick:
 
 
 class Canvas:
-    def __init__(self, surface, transform=None):
-        self.surface   = surface
+    def __init__(self, surface, bkgnd_surface=None, transform=None):
+        self.surface = surface
+        self.bkgnd_surface = bkgnd_surface
 
         if transform is None:
             # no transform
             transform = Transform(surface[0].w, surface[0].h, 0,0, surface[0].w, surface[0].h)
 
         self.transform = transform
-
         self.font = None
-
         self.set_color(0xfffff08f)
 
-
-    def set_color(self, color, mode="normal"):
         # get pointer to pixels as uint32[]
-        u32_pixels = ctypes.cast(self.surface[0].pixels, ctypes.POINTER(ctypes.c_uint32))
+        self.pixels = ctypes.cast(self.surface[0].pixels, ctypes.POINTER(ctypes.c_uint32))
         # get surface width
-        width  = self.surface[0].w
-        height = self.surface[0].h
-        color  = 0xfffff08f
+        self.width  = self.surface[0].w
+        self.height = self.surface[0].h
 
-        self.put_pixel = lambda x,y: Canvas._draw_pixel(u32_pixels, width, height, x, y, color, mode)
+        if bkgnd_surface:
+            self.bkgnd_pixels = ctypes.cast(self.bkgnd_surface[0].pixels, ctypes.POINTER(ctypes.c_uint32))
+            self.bkgnd_width  = self.bkgnd_surface[0].w
+            self.bkgnd_height = self.bkgnd_surface[0].h
+        else:
+            self.bkgnd_width  = 0
+            self.bkgnd_height = 0
+
+        self.erase_list = []
+
+
+    def _put_pixel(self, x,y,color32,mode):
+        if mode == "normal":
+            self._write_pixel(x,y,color32)
+        elif mode == "xor":
+            old_color = self._read_pixel(x,y)
+            new_color = (old_color ^ color32) | 0xFF000000
+            self._write_pixel(x,y, new_color)
+        elif mode == "erase":
+            bkgnd_color = self._read_bkgnd_pixel(x,y)
+            if bkgnd_color is not None:
+                self._write_pixel(x,y, bkgnd_color)
+        else:
+            raise Exception(f"unknown draw pixel mode: {mode}")
+
+
+
+
+    def _read_pixel(self,x,y):
+        if x>=0 and y>=0 and x<self.width and y<self.height:
+            return self.pixels[y*self.width + x]
+
+    def _read_bkgnd_pixel(self,x,y):
+        if x>=0 and y>=0 and x<self.bkgnd_width and y<self.bkgnd_height:
+            return self.bkgnd_pixels[y*self.bkgnd_width + x]
+
+    def _write_pixel(self,x,y, color32):
+        if x>=0 and y>=0 and x<self.width and y<self.height:
+            self.pixels[y*self.width + x] = color32
+
+    def _write_bkgnd_pixel(self,x,y, color32):
+        if x>=0 and y>=0 and x<self.bkgnd_width and y<self.bkgnd_height:
+            self.bkgnd_pixels[y*self.bkgnd_width + x] = color32
+
+
+    def _clear_bkgnd(self, rect, color32):
+        ret = SDL_FillRect(self.bkgnd_surface, None, color32)
+
+
+
+    def set_color(self, color, mode="normal", erase_later=False):
+        self.color = color
+        self.erase_later = erase_later
+        self.put_pixel = lambda x,y: self._put_pixel(x, y, color, mode)
+        self.erase_pixel = lambda x,y: self._put_pixel(x, y, None, "erase")
+
+
+    def erase(self):
+        for erase in self.erase_list:
+            erase()
+        self.erase_list = []
 
 
     def clear(self):
-        SDL_FillRect(self.surface, None, 0xFF000000) #black with 100% alpha (no transparency)
+        self._filled_rect(None, 0xFF000000) #black with 100% alpha (no transparency)
+
+    def _filled_rect(self, rect, color):
+        ret = SDL_FillRect(self.surface, rect, color)
+
 
     def draw_pixel(self, x, y):
         sx,sy = self.transform.to_screen(x,y)
         self.put_pixel(sx,sy)
+        if self.erase_later:
+            self.erase_list.append(lambda : self.erase_pixel(sx,sy))
 
 
     def draw_line(self, x1,y1, x2,y2):
@@ -96,17 +158,24 @@ class Canvas:
         sx2,sy2 = self.transform.to_screen(x2,y2)
 
         Canvas._line(sx1,sy1,sx2,sy2, self.put_pixel)
+        if self.erase_later:
+            self.erase_list.append(lambda : Canvas._line(sx1,sy1,sx2,sy2, self.erase_pixel))
 
 
     def draw_filled_circle(self,x,y,radius):
         sx,sy = self.transform.to_screen(x,y)
         radius = Transform.to_int(radius)
         Canvas._filled_circle(sx,sy,radius, self.put_pixel)
+        if self.erase_later:
+            self.erase_list.append(lambda : Canvas._filled_circle(sx,sy,radius, self.erase_pixel))
+
 
     def draw_circle(self, x, y, radius):
         sx,sy = self.transform.to_screen(x,y)
         radius = Transform.to_int(radius)
         Canvas._circle(sx,sy,radius, self.put_pixel)
+        if self.erase_later:
+            self.erase_list.append(lambda : Canvas._circle(sx,sy,radius, self.erase_pixel))
 
     def draw_rectangle(self, x1, y1, x2, y2):
         self.draw_line(x1,y1,x1,y2)
@@ -117,9 +186,9 @@ class Canvas:
     def draw_text(self, x, y, text):
 
         if not self.font:
-            self.font = TTF_OpenFont(b"fonts/ARCADE_R.TTF", 10)
+            self.font = TTF_OpenFont(b"fonts/ARCADE_R.TTF", 8)
             if not self.font:
-                raise TTF_GetError()
+                raise Exception(f"TTF_OpenFont() error = {TTF_GetError()}")
 
         # Create surface with rendered text
         textColor  = pixels.SDL_Color(100, 110, 160)
@@ -138,6 +207,10 @@ class Canvas:
         SDL_BlitSurface(textSurface, None, self.surface, ctypes.byref(rcDest))
         SDL_FreeSurface(textSurface)
 
+        if self.erase_later:
+            bkgnd_color = self._read_bkgnd_pixel(sx,sy)
+            self.erase_list.append(lambda : self._filled_rect(rcDest, bkgnd_color))
+
 
 
     def draw_image(self, canvas, x=0, y=0):
@@ -151,26 +224,9 @@ class Canvas:
 
         SDL_BlitSurface(canvas.surface, None, self.surface, ctypes.byref(rcDest))
 
-
-    def _draw_pixel(pixels,width,height,x,y,color,mode):
-        if mode=="normal":
-            Canvas._write_pixel(pixels,width,height,x,y,color)
-        elif mode=="xor":
-            prev_color = Canvas._read_pixel(pixels,width,height,x,y)
-            new_color = (prev_color ^ color) | 0xFF000000
-            Canvas._write_pixel(pixels,width,height,x,y, new_color)
-        else:
-            raise Exception(f"unknown draw pixel mode: {mode}")
-
-
-    def _read_pixel(pixels,width,height, x,y):
-        if x>=0 and y>=0 and x<width and y<height:
-            return pixels[y*width + x]
-
-    def _write_pixel(pixels,width,height, x,y, color32):
-   #     print(f"width={width}, height={height}, x={x}, y={y}")
-        if x>=0 and y>=0 and x<width and y<height:
-            pixels[y*width + x] = color32
+        if self.erase_later:
+            bkgnd_color = self._read_pixel(sx,sy)
+            self.erase_list.append(lambda : self._filled_rect(rcDest, bkgnd_color))
 
 
     # https://stackoverflow.com/questions/1201200/fast-algorithm-for-drawing-filled-circles
@@ -240,7 +296,7 @@ class Canvas:
 
 
 class Image:
-    def __init__(self, width, height, centerx=0, centery=0):
+    def __init__(self, width, height, centerx, centery):
         super().__init__()
         surface  = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000)
         self.canvas = Canvas(surface)
@@ -264,74 +320,64 @@ class Sprite(Item):
 
 
 class Window:
-    def __init__(self, mode="VGA"):
-        self.set_mode(mode)
 
-        self.last_key = None
-        self.last_mouse = None
+    SDL_Init(SDL_INIT_EVERYTHING)
+    TTF_Init()
 
-        SDL_Init(SDL_INIT_EVERYTHING)
-        TTF_Init()
-
-        self.sprites = List(Sprite,20)
-        self.images = {}
-
-    def create_image(self, name, width, height, centerx, centery):
-        image = Image(width,height,centerx,centery)
-        self.images[name] = image
-        return image
-
-
-
-    def set_mode(self,mode):
+    def __init__(self, title, mode="VGA"):
 
         if mode == "SVGA":
-            bkcolor = "#DFDFDF" #white
             width   = 800
             height  = 600
-            scale_x = 1
-            scale_y = 1
+            self.scale_x = 1
+            self.scale_y = 1
         elif mode == "VGA":
-            bkcolor = "#DFDFDF" #white
             width   = 320
             height  = 200
-            scale_x = 4
-            scale_y = 4
+            self.scale_x = 4
+            self.scale_y = 4
         elif mode == "C64_MC":
-            bkcolor = "#FFFFFF" #white
             width   = 160
             height  = 200
-            scale_x = 8
-            scale_y = 4
+            self.scale_x = 8
+            self.scale_y = 4
         else:
             raise Exception(f"Unknown mode: {mode}")
 
-        self.scale_x = scale_x
-        self.scale_y = scale_y
 
-
-        self.window   = SDL_CreateWindow(b"SDL2 Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width*scale_x, height*scale_y, SDL_WINDOW_SHOWN)
+        self.window   = SDL_CreateWindow(title.encode(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width*self.scale_x, height*self.scale_y, SDL_WINDOW_SHOWN)
         self.renderer = SDL_CreateRenderer(self.window, -1, 0)
 
-
-        surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000)
+        surface_fg     = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000)
+        surface_bg     = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000)
         surface_merged = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000)
         transform = Transform(width, height,  0, 200, 320, 0)
-        self.canvas = Canvas(surface,transform)
-        self.canvas_merged = Canvas(surface_merged,transform)
+
+        self.canvas = Canvas(surface_fg,surface_bg,transform=transform)
+        self.canvas_merged = Canvas(surface_merged,transform=transform)
 
         self.texture  = None
         self.event    = SDL_Event()
+        self.images   = {}
 
+        self.last_mouse = None
+        self.last_key   = None
+
+        self.sprites = List(Sprite,20)
+
+
+    def add_image(self, name, image):
+        self.images[name] = image
 
 
     def start_draw(self):
-        self.canvas.clear()
+      #  self.canvas.clear()
+        self.canvas.erase()
         self.sprites.clear()
 
-    def draw_sprite(self, image_name, x, y):
+    def draw_sprite(self, name, x, y):
         sprite = self.sprites.create()
-        sprite.set(self.images[image_name], x, y)
+        sprite.set(self.images[name], x, y)
         # draw sprite in the finish_draw()
 
     def finish_draw(self):
@@ -365,11 +411,9 @@ class Window:
                 wx, wy = self.canvas.transform.to_world(mouseX.value, mouseY.value)
                 wx, wy = wx / self.scale_x, wy / self.scale_y #hack for stretched canvas
                 self.last_mouse = MouseClick(wx, wy, self.event.button.button)
-                print(f"last mouse = {self.last_mouse}")
 
             elif self.event.type == SDL_KEYDOWN:
                 self.last_key = self.event.key.keysym.sym
-                print(f"last key = {self.last_key}")
 
 
     def check_key(self):
