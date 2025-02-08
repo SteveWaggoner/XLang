@@ -227,7 +227,7 @@ class Display:
 
     def draw_explosion(self, obj):
         self.window.canvas.set_color(0xFF153489, mode="xor", erase_later=True)
-        self.window.canvas.draw_filled_circle(obj.pos.x, obj.pos.y, obj.radius)
+        self.window.canvas.draw_filled_octogon(obj.pos.x, obj.pos.y, obj.radius, 3,8)
         self.window.canvas.set_color(0xFF053499, mode="normal", erase_later=True)
 
 

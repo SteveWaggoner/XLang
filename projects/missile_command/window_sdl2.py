@@ -5,6 +5,8 @@ from sdl2 import *
 from sdl2.sdlttf import *
 import ctypes
 
+import geometry
+
 from list import Item, List
 
 class Transform:
@@ -91,8 +93,12 @@ class Canvas:
             self._write_pixel(x,y,color32)
         elif mode == "xor":
             old_color = self._read_pixel(x,y)
-            new_color = (old_color ^ color32) | 0xFF000000
-            self._write_pixel(x,y, new_color)
+            if old_color is not None:
+                new_color = (old_color ^ color32) | 0xFF000000
+                self._write_pixel(x,y, new_color)
+            else:
+                print(f"cannot read old color at {x},{y}")
+
         elif mode == "erase":
             bkgnd_color = self._read_bkgnd_pixel(x,y)
             if bkgnd_color is not None:
@@ -126,6 +132,9 @@ class Canvas:
 
 
     def set_color(self, color, mode="normal", erase_later=False):
+        if color is None:
+            raise Exception("color is null?!?")
+
         self.color = color
         self.erase_later = erase_later
         self.put_pixel = lambda x,y: self._put_pixel(x, y, color, mode)
@@ -157,25 +166,32 @@ class Canvas:
         sx1,sy1 = self.transform.to_screen(x1,y1)
         sx2,sy2 = self.transform.to_screen(x2,y2)
 
-        Canvas._line(sx1,sy1,sx2,sy2, self.put_pixel)
+        geometry.Shape.line(sx1,sy1,sx2,sy2, self.put_pixel)
         if self.erase_later:
-            self.erase_list.append(lambda : Canvas._line(sx1,sy1,sx2,sy2, self.erase_pixel))
+            self.erase_list.append(lambda : geometry.Shape.line(sx1,sy1,sx2,sy2, self.erase_pixel))
 
 
     def draw_filled_circle(self,x,y,radius):
         sx,sy = self.transform.to_screen(x,y)
         radius = Transform.to_int(radius)
-        Canvas._filled_circle(sx,sy,radius, self.put_pixel)
+        geometry.Shape.filled_circle(sx,sy,radius, self.put_pixel)
         if self.erase_later:
-            self.erase_list.append(lambda : Canvas._filled_circle(sx,sy,radius, self.erase_pixel))
+            self.erase_list.append(lambda : geometry.Shape.filled_circle(sx,sy,radius, self.erase_pixel))
+
+    def draw_filled_octogon(self,x,y,radius, slope_dx, slope_dy):
+        sx,sy = self.transform.to_screen(x,y)
+        radius = Transform.to_int(radius)
+        geometry.Shape.filled_octogon(sx,sy,radius, slope_dx, slope_dy, self.put_pixel)
+        if self.erase_later:
+            self.erase_list.append(lambda : geometry.Shape.filled_octogon(sx,sy,radius, 3,8, self.erase_pixel))
 
 
     def draw_circle(self, x, y, radius):
         sx,sy = self.transform.to_screen(x,y)
         radius = Transform.to_int(radius)
-        Canvas._circle(sx,sy,radius, self.put_pixel)
+        geometry.Shape.circle(sx,sy,radius, self.put_pixel)
         if self.erase_later:
-            self.erase_list.append(lambda : Canvas._circle(sx,sy,radius, self.erase_pixel))
+            self.erase_list.append(lambda : geometry.Shape.circle(sx,sy,radius, self.erase_pixel))
 
     def draw_rectangle(self, x1, y1, x2, y2):
         self.draw_line(x1,y1,x1,y2)
@@ -229,70 +245,8 @@ class Canvas:
             self.erase_list.append(lambda : self._filled_rect(rcDest, bkgnd_color))
 
 
-    # https://stackoverflow.com/questions/1201200/fast-algorithm-for-drawing-filled-circles
-    def _filled_circle(x,y,r, putPixel):
-        r2 = r * r
-        area = r2 << 2
-        rr = r << 1
-
-        for i in range(area):
-            tx = (i % rr) - r
-            ty = (i / rr) - r
-            if tx * tx + ty * ty <= r2:
-                putPixel(int(x + tx), int(y + ty))
 
 
-    def _circle(x0, y0, radius, putPixel):
-        f = 1 - radius
-        ddf_x = 1
-        ddf_y = -2 * radius
-        x = 0
-        y = radius
-        putPixel(x0, y0 + radius)
-        putPixel(x0, y0 - radius)
-        putPixel(x0 + radius, y0)
-        putPixel(x0 - radius, y0)
-
-        while x < y:
-            if f >= 0:
-                y -= 1
-                ddf_y += 2
-                f += ddf_y
-            x += 1
-            ddf_x += 2
-            f += ddf_x
-            putPixel(x0 + x, y0 + y)
-            putPixel(x0 - x, y0 + y)
-            putPixel(x0 + x, y0 - y)
-            putPixel(x0 - x, y0 - y)
-            putPixel(x0 + y, y0 + x)
-            putPixel(x0 - y, y0 + x)
-            putPixel(x0 + y, y0 - x)
-            putPixel(x0 - y, y0 - x)
-
-
-    def _line(x0, y0, x1, y1, putPixel):
-
-        # Bresenham's algorithm
-
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        x, y = x0, y0
-        sx = -1 if x0 > x1 else 1
-        sy = -1 if y0 > y1 else 1
-        err = dx - dy
-
-        while True:
-            putPixel (x, y)
-            if x == x1 and y == y1:
-                break
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x += sx
-            if e2 < dx:
-                err += dx
-                y += sy
 
 
 class Image:
