@@ -4,7 +4,7 @@ from game_levels import Game_Levels
 from game_board import Game_Board, Game_Input, Game_UI
 from game_display import Display, Sound
 
-from sound_sid import SoundSID
+#from sound_sid import SoundSID
 
 import window_sdl2
 
@@ -16,15 +16,15 @@ class Game:
         self.board = Game_Board()
         self.input = Game_Input(self.board)
 
-    #    self.board.on_load_level       = lambda: Sound.play("load_level")
-    #    self.board.on_launch_missile   = lambda: Sound.play("launch_missile")
-    #    self.board.on_explode_enemy    = lambda: Sound.play("explode_enemy")
-    #    self.board.on_explode_friendly = lambda: Sound.play("explode_friendly")
+        self.board.on_load_level       = lambda: Sound.play("load_level")
+        self.board.on_launch_missile   = lambda: Sound.play("launch_missile")
+        self.board.on_explode_enemy    = lambda: Sound.play("explode_enemy")
+        self.board.on_explode_friendly = lambda: Sound.play("explode_friendly")
 
-        self.board.on_load_level       = None
-        self.board.on_launch_missile   = None
-        self.board.on_explode_enemy    = None
-        self.board.on_explode_friendly = None
+      #  self.board.on_load_level       = None
+      #  self.board.on_launch_missile   = None
+      #  self.board.on_explode_enemy    = None
+      #  self.board.on_explode_friendly = None
 
 
 
@@ -32,7 +32,7 @@ class Game:
         #self.display = Display(window_tk.Window())
         self.display = Display(window_sdl2.Window("Missile Command", mode="VGA"))
 
-        self.sound = SoundSID()
+     #   self.sound = SoundSID()
 
 
 
@@ -97,7 +97,7 @@ class Game:
 
     def run_game(self):
 
-        self.sound.start_play()
+     #   self.sound.start_play()
 
         self.board.load_level(0)
         while self.board.is_game_active():
@@ -105,7 +105,7 @@ class Game:
             self.board.game_action()
             self.game_draw()
 
-            self.sound.play_note()
+         #   self.sound.play_note()
 
 
 
