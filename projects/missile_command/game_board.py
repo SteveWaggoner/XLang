@@ -46,16 +46,6 @@ class Game_Input:
                 break
 
 
-class Game_UI(Object):
-
-    def set_fields(self, level, score, game_over, debug):
-        self.level = level
-        self.score = score
-        self.game_over = game_over
-        self.debug = debug
-
-
-
 
 class Game_Board:
 

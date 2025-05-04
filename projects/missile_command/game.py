@@ -1,10 +1,7 @@
 #!/usr/bin/python3.8
 
-from game_levels import Game_Levels
-from game_board import Game_Board, Game_Input, Game_UI
+from game_board import Game_Board, Game_Input
 from game_display import Display, Sound
-
-#from sound_sid import SoundSID
 
 import window_sdl2
 
@@ -26,14 +23,7 @@ class Game:
       #  self.board.on_explode_enemy    = None
       #  self.board.on_explode_friendly = None
 
-
-
-        self.ui  = Game_UI()
-        #self.display = Display(window_tk.Window())
         self.display = Display(window_sdl2.Window("Missile Command", mode="VGA"))
-
-     #   self.sound = SoundSID()
-
 
 
     def game_input(self):
@@ -69,9 +59,9 @@ class Game:
                 if game_obj.actions:
                     game_obj.action_tick()
                     if game_obj.active == True: #if still active after action
-                        self.display.draw(game_obj)
+                        self.display.draw_obj(game_obj)
                 else:
-                    self.display.draw(game_obj)
+                    self.display.draw_obj(game_obj)
 
 
     def game_draw(self):
@@ -89,23 +79,18 @@ class Game:
         self.draw_items(self.board.alien)
         self.draw_items(self.board.explosion)
 
-        self.ui.set_fields(level=self.board.level_index+1, score=self.board.score, game_over=self.board.game_over, debug=f"fps: {self.board.clock.fps:.4f}, extracities: {self.board.extra_cities}")
-        self.display.draw(self.ui)
+        self.display.draw_score(self.board)
 
         self.display.finish_draw()
 
 
     def run_game(self):
 
-     #   self.sound.start_play()
-
         self.board.load_level(0)
         while self.board.is_game_active():
             self.game_input()
             self.board.game_action()
             self.game_draw()
-
-         #   self.sound.play_note()
 
 
 

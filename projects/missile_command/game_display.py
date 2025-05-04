@@ -4,7 +4,6 @@ from c6502 import Byte, Word, WordDecimal
 
 from playsound import playsound
 
-from game_board import Game_UI
 from game_objects import Object_Missile, Object_Bomb, Object_SmartBomb, Object_Plane, Object_Alien, Object_Mario, Object_Explosion, Object_City, Object_Battery, Object_Land
 
 
@@ -175,10 +174,9 @@ class Display:
         self.window.add_image("big_circle",img)
 
 
-    def draw(self, obj):
+    def draw_obj(self, obj):
 
-        if   isinstance(obj, Game_UI):          self.draw_ui(obj)
-        elif isinstance(obj, Object_Missile):   self.draw_missile(obj)
+        if   isinstance(obj, Object_Missile):   self.draw_missile(obj)
         elif isinstance(obj, Object_Bomb):      self.draw_bomb(obj)
         elif isinstance(obj, Object_SmartBomb): self.draw_smartbomb(obj)
         elif isinstance(obj, Object_Plane):     self.draw_plane(obj)
@@ -191,12 +189,13 @@ class Display:
         else: raise Exception(f"Unknown obj to draw: {type(obj)}")
 
 
-    def draw_ui(self, ui):
+    def draw_score(self, board):
 
+        debug=f"fps: {board.clock.fps:.4f}, extracities: {board.extra_cities}"
         self.window.canvas.set_color(0xFF053499,erase_later=True)
-        self.window.canvas.draw_text(Byte(60), Byte(20), str(ui.debug))
-        self.window.canvas.draw_text(Byte(180), Byte(10), "level: "+str(ui.level)+"   score:" + str(ui.score))
-        if ui.game_over == True:
+        self.window.canvas.draw_text(Byte(60), Byte(20), debug)
+        self.window.canvas.draw_text(Byte(180), Byte(10), "level: "+str(board.level_index+1)+"   score:" + str(board.score))
+        if board.game_over == True:
             self.window.canvas.draw_text(Byte(180), Byte(100), "GAME OVER")
 
 
