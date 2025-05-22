@@ -66,9 +66,6 @@ class Object(Item):
     def __init__(self):
         super().__init__()
 
-        # memory allocation
-        self.active = Byte(False)
-
         #location and size
         self.start    = None   # origin of missile/bomb
         self.pos      = None
@@ -91,9 +88,17 @@ class Object(Item):
         self.action_index = Byte(0)
         self.action_sleep = Byte(0)
 
+        self.move_cnt = 0
+
     def __str__(self):
-        return self.__class__.__name__ + "(pos="+str(self.pos)+", w="+str(self.width)+", h="+str(self.height)+", r="+str(self.radius) \
+        return self.__class__.__name__ + "(start="+str(self.start)+", mc="+str(self.move_cnt) \
+            +", ai/as="+str(self.action_index)+"/"+str(self.action_sleep)+", pos="+str(self.pos) \
+            +", w="+str(self.width)+", h="+str(self.height)+", r="+str(self.radius) \
             +", dest="+str(self.dest)+", velocity="+str(self.velocity)+", dist="+str(self.distance)+")"
+
+
+    def get_hash(self, prev_hash=""):
+        return prev_hash+"|"+str(self)
 
     #
     # for object collision detection
@@ -120,6 +125,8 @@ class Object(Item):
         self.start = start
         self.pos   = Position(start.x,start.y)
 
+        self.move_cnt = 0 #debug
+
         if not width is None:
             self.width.set(width)
             self.height.set(height)
@@ -133,6 +140,7 @@ class Object(Item):
         self.velocity = self.pos.calculate_velocity_to(self.dest, self.speed)
 
     def move(self):
+        self.move_cnt = self.move_cnt + 1
         self.pos.x = self.pos.x + self.velocity.x
         self.pos.y = self.pos.y + self.velocity.y
         self.last_distance = self.distance

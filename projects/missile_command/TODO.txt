@@ -1,0 +1,19 @@
+Things to add:
+1) mimic bitmap graphics from original
+2) mimic coloring from original
+3) add MRV support
+4) add correct level logic
+5) add 8.8 float vectoring
+6) correct smart bomb logic
+
+Thing to fix:
+
+
+Tick language
+Versions
+0.0 - save current version in github correctly
+0.1 - Python is basically correct
+0.2 - create C version for gcc in Cygwin
+0.3 - create C version for TinyC in Windows
+0.4 - create C version for cc65 that run in X16 emulator
+0.5 - convert to generic code that can be transpiled to Python, gcc on Cygwin, TinyC on Window and cc65 on X16 emulator

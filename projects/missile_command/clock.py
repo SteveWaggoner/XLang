@@ -10,11 +10,6 @@ class Alarm(Item):
     def __init__(self):
         super().__init__()
 
-#    def destroy(self):
-#        super().__init__()
-#        print("destry "+str(self))
-
-
     def set(self, clock, alarm_ticks, callback, param):
         self.clock = clock
         self.alarm_ticks = alarm_ticks
@@ -76,8 +71,6 @@ class Clock:
         if self.frame_cnt % 10 == 0:
             now = time.time()
             self.fps = self.frame_cnt / (now - self.frame_start)
-        #    print(f"fps: {self.fps:.6f}  frame_cnt={self.frame_cnt}, total_dur={(now - self.frame_start):.6f}")
-
 
 
     def reset(self):

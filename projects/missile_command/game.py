@@ -1,4 +1,4 @@
-#!/usr/bin/python3.8
+#!/usr/bin/python3.9
 
 from game_board import Game_Board, Game_Input
 from game_display import Display, Sound
@@ -11,7 +11,6 @@ class Game:
     def __init__(self):
 
         self.board = Game_Board()
-        self.input = Game_Input(self.board)
 
         self.board.on_load_level       = lambda: Sound.play("load_level")
         self.board.on_launch_missile   = lambda: Sound.play("launch_missile")
@@ -28,28 +27,28 @@ class Game:
 
     def game_input(self):
 
-        if self.board.level_index == 0:
-            self.game_user_input()
-        else:
+        if self.board.mode == "replay":
             self.game_auto_input()
+        else:
+            self.game_user_input()
 
 
     def game_user_input(self):
 
         pnt = self.display.check_mouse()
         if pnt:
-            self.input.launch_missile(pnt.x, pnt.y)
+            self.board.input.launch_missile(pnt.x, pnt.y)
 
         key = self.display.check_key()
         if key == 49: #"1"
-            self.input.select_battery(0)
+            self.board.input.select_battery(0)
         if key == 50: #"2"
-            self.input.select_battery(1)
+            self.board.input.select_battery(1)
         if key == 51: #"3"
-            self.input.select_battery(2)
+            self.board.input.select_battery(2)
 
     def game_auto_input(self):
-        self.input.play_move()
+        self.board.input.run_moves(save=True)
 
 
 
@@ -86,7 +85,7 @@ class Game:
 
     def run_game(self):
 
-        self.board.load_level(0)
+        self.board.load_level(0, mode="record")
         while self.board.is_game_active():
             self.game_input()
             self.board.game_action()

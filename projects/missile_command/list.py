@@ -5,8 +5,6 @@ from c6502 import Byte
 
 class Item:
     def __init__(self):
-        super().__init__()
-
         # memory allocation
         self.active = Byte(False)
 
@@ -47,10 +45,12 @@ class List:
 
         while i < len(self.items):
             if self.items[n].active == False:
+                self.items[n].__init__()
                 self.items[n].active.set(True)
                 self.next_alloc.set( ( n + 1 ) % len(self.items) )
                 self.num_active.set( self.num_active + 1 )
              #   print("created "+str(self.items[n].__class__.__name__)+" "+str(n))
+
                 return self.items[n]
             i = i + 1
             n = (n + 1) % len(self.items)
@@ -60,6 +60,7 @@ class List:
 
 
     def clear(self):
+        self.next_alloc.set(0)
         for i in self.items:
             if i.active.get():
                 i.destroy()
@@ -73,6 +74,14 @@ class List:
                         if has_collision_function(a,b):
                             hits.append((a,b))
         return hits
+
+    def get_hash(self, prev_hash=""):
+        hash_val = prev_hash
+        for a in self.items:
+            if a.active == True:
+                hash_val = a.get_hash(hash_val)
+        return hash_val
+
 
 
 def main():

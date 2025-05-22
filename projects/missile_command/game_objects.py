@@ -84,6 +84,9 @@ class Object_City(Object):
     def destroy(self):
         self.destroyed.set(True)
 
+    def __str__(self):
+        return super().__str__()+", destroyed="+str(self.destroyed)
+
 
 class Object_Land(Object):
     pass

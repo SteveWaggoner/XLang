@@ -9,6 +9,8 @@ class Level:
         self.enemy = []
         self.score_multiplier = 1
         self.backgroud_color = ""
+        self.random_seed = 123
+        self.missile_speed = 80
 
 
 class Game_Levels:

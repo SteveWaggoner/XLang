@@ -5,8 +5,9 @@ from game_objects import *
 from list import List
 from game_levels import Game_Levels
 
+from diff import print_diff
+
 import random
-random.seed(123) # make game deterministic
 
 class Game_Input:
 
@@ -14,49 +15,78 @@ class Game_Input:
         self.board = board
         self.moves = []
         self.move_index = 0
-        self.last_clock_ticks = 0
+        self.save = False
 
+    def add_move(self, action, param):
+        cur_ticks = self.board.clock.ticks.get()
+        hash_val = self.board.get_hash()
+        self.moves.append((cur_ticks, hash_val, action, param))
+
+    def rewind(self, save):
+        self.move_index = 0
+        if not save:
+            self.moves = []
+
+    def run_moves(self, save):
+        while self.run_move(save=save):
+            pass
+
+    def run_move(self, save):
+        if self.move_index < len(self.moves):
+            cur_ticks = self.board.clock.ticks.get()
+            ticks, hash_val, action, params = self.moves[self.move_index]
+
+            if ticks < cur_ticks:
+                print("error failed to playback move in time?!?")
+
+            cur_hash_val = self.board.get_hash()
+            if ticks == cur_ticks and hash_val != cur_hash_val:
+                print("error playback hash value is different?!?")
+                print(">current board  :: "+cur_hash_val)
+                print(">expected board :: "+hash_val)
+                print_diff(cur_hash_val, hash_val)
+                raise Exception("bad thing happened")
+
+            if ticks == cur_ticks:
+                self.execute(action, params)
+                if save:
+                    self.move_index = self.move_index + 1
+                else:
+                    self.moves.pop(self.move_index)
+                return True
+        return False
+
+    ### custom logic ##
     def select_battery(self, battery_index):
-        self.moves.append((self.board.clock.ticks.get(),1, battery_index ))
-        self.board.select_battery(battery_index)
+        self.add_move("select_battery", battery_index)
+        self.run_move(save=self.save)
 
     def launch_missile(self, x, y):
         px = int(x)
         py = int(y)
-        self.moves.append((self.board.clock.ticks.get(),2, (px,py)))
-        self.board.launch_missile(px,py)
+        self.add_move("launch_missile", (px,py))
+        self.run_move(save=self.save)
 
-
-    def play_move(self):
-
-        if self.board.clock.ticks.get() < self.last_clock_ticks:
-            #rewind
-            self.move_index = 0
-        self.last_clock_ticks = self.board.clock.ticks.get()
-
-        while self.move_index < len(self.moves):
-            ticks, action, param = self.moves[self.move_index]
-            if ticks == self.board.clock.ticks.get():
-                if action == 1:
-                    self.board.select_battery(param)
-                elif action == 2:
-                    self.board.launch_missile(param[0],param[1])
-                self.move_index += 1
-            else:
-                break
-
+    def execute(self, action, param):
+        if action == "select_battery":
+            self.board.select_battery(param)
+        elif action == "launch_missile":
+            self.board.launch_missile(param[0],param[1])
+        else:
+            raise Exception(f"unknown action: {action} ({params})")
 
 
 class Game_Board:
 
     def __init__(self):
 
+        self.input            = Game_Input(self)
         self.clock            = Clock()
 
+        self.level            = None
         self.level_index      = Byte(0)
         self.enemy_index      = Byte(0)
 
-        self.level            = None
 
         self.game_over        = Byte(False)
         self.level_over       = Byte(False)
@@ -66,11 +96,11 @@ class Game_Board:
 
         self.switching_to_next_level = Byte(False)
 
-        self.create_game_objects()
-        self.create_event_handlers()
+        self._create_game_objects()
+        self._create_event_handlers()
 
 
-    def create_game_objects(self):
+    def _create_game_objects(self):
 
         self.missile   = List(Object_Missile,15)
         self.bomb      = List(Object_Bomb,25)
@@ -97,26 +127,44 @@ class Game_Board:
         self.land = List(Object_Land, 1, True)
         self.land[0].set_position(Position(x=0, y=185),width=320, height=15)
 
-    def create_event_handlers(self):
+
+
+
+    def _create_event_handlers(self):
         self.on_load_level     = None
         self.on_launch_missile = None
         self.on_explode_enemy  = None
 
 
-    def load_level(self, level_index):
+    def get_hash(self):
+        return str(self.missile.num_active)+" "+self.missile.get_hash() + \
+                " "+str(self.alien.num_active)+" "+self.alien.get_hash() + \
+                " "+str(self.smartbomb.num_active)+" "+self.smartbomb.get_hash() + \
+                " "+str(self.plane.num_active)+" "+self.plane.get_hash() + \
+                " "+str(self.city.num_active)+" "+self.city.get_hash()
 
-        random.seed(123) #replay a level has same actions by enemy
 
-        level_index = level_index % len(Game_Levels.levels)
+    def load_level(self, level_index, mode):
 
+        # configure input mode
+        self.mode = mode
+        if mode == "normal":
+            self.input.rewind(save=False)
+            self.input.save = False
+        elif mode == "replay":
+            self.input.rewind(save=True)
+            self.input.save = False
+        elif mode == "record":
+            self.input.rewind(save=False)
+            self.input.save = True
+        else:
+            raise Exception(f"unknown mode: {mode}")
+
+        # reset the level
         self.clock.reset()
-
+        self.enemy_index.set(0)
         self.level_index.set(level_index)
         self.level = Game_Levels.levels[level_index]
-        self.enemy_index.set(0)
-
-        if self.on_load_level:
-            self.on_load_level()
 
         for game_objs in [self.missile, self.bomb]:
             game_objs.clear()
@@ -125,11 +173,51 @@ class Game_Board:
             battery.num_missiles.set(10)
         self.select_battery(1)
 
+        #level has deterministic actions by enemy
+        random.seed(self.level.random_seed)
+
+        # play sound
+        if self.on_load_level:
+            self.on_load_level()
+
+
+    def select_battery(self, battery_index):
+        self.battery_index.set(battery_index)
+        for n in range(3):
+            self.battery.items[n].selected.set(False)
+        self.battery.items[battery_index].selected.set(True)
+
+    def launch_missile(self, dest_x, dest_y):
+
+        speed   = self.level.missile_speed
+        battery = self.battery[self.battery_index.get()]
+
+        if battery.pos.y < dest_y:
+            return False
+
+        if battery.num_missiles < 1:
+            return False
+
+        if self.on_launch_missile:
+            self.on_launch_missile()
+
+        missile = self.missile.create()
+        start_x = battery.pos.x + (battery.width/2)
+        start_y = battery.pos.y
+        missile.set_position(Position(start_x,start_y),Position(dest_x,dest_y), speed)
+
+        battery.num_missiles = battery.num_missiles - 1
+        return True
+
+
     def spawn_enemies(self):
 
         if self.enemy_index < len(self.level.enemy):
             enemy = self.level.enemy[self.enemy_index.get()]
             if enemy.launch_time < self.clock.ticks:
+
+                print("spawn enemy "+str(self.enemy_index)+" "+str(enemy.launch_time)+" "+str(self.clock.ticks))
+
                 enemy.spawn(self)
                 self.enemy_index += 1
 
@@ -154,35 +242,6 @@ class Game_Board:
         game_obj = Game_Board.get_random([self.battery, self.city])
         return game_obj.get_target_pos()
 
-
-    def select_battery(self, battery_index):
-        self.battery_index.set(battery_index)
-        for n in range(3):
-            self.battery.items[n].selected.set(False)
-        self.battery.items[battery_index].selected.set(True)
-
-
-    def launch_missile(self, dest_x, dest_y):
-
-        speed   = 80 # todo: from level
-        battery = self.battery[self.battery_index.get()]
-
-        if battery.pos.y < dest_y:
-            return False
-
-        if battery.num_missiles < 1:
-            return False
-
-        if self.on_launch_missile:
-            self.on_launch_missile()
-
-        missile = self.missile.create()
-        start_x = battery.pos.x + (battery.width/2)
-        start_y = battery.pos.y
-        missile.set_position(Position(start_x,start_y),Position(dest_x,dest_y), speed)
-
-        battery.num_missiles = battery.num_missiles - 1
-        return True
 
 
     def create_explosion(self, pos):
@@ -357,7 +416,8 @@ class Game_Board:
     def next_level(self):
 
         print("next level")
-        self.load_level(self.level_index.get()+1)
+      #  self.load_level(self.level_index.get()+1, mode="replay")
+        self.load_level(1, mode="replay")
         self.switching_to_next_level.set(False)
 
 
@@ -374,22 +434,5 @@ class Game_Board:
         self.clock.tick()
         self.clock.check_alarms()
 
-
-
-
-def main():
-    print("start game")
-
-    board = Game_Board()
-    board.load_level(0)
-    while board.is_game_active():
-        board.game_action()
-
-    print("end game")
-
-
-
-if __name__=="__main__":
-    main()
 
 

@@ -2,7 +2,7 @@
 
 from c6502 import Byte, Word, WordDecimal
 
-from playsound import playsound
+#from playsound import playsound
 
 from game_objects import Object_Missile, Object_Bomb, Object_SmartBomb, Object_Plane, Object_Alien, Object_Mario, Object_Explosion, Object_City, Object_Battery, Object_Land
 
@@ -12,11 +12,14 @@ from window_sdl2 import Image
 class Sound:
 
     def play(sound_name):
+        pass
+        """
         if   sound_name == "load_level":       playsound("sounds/alert.mp3", False)
         elif sound_name == "launch_missile":   playsound("sounds/missile-fire.mp3", False)
         elif sound_name == "explode_enemy":    playsound("sounds/explosions.mp3", False)
         elif sound_name == "explode_friendly": playsound("sounds/city-blow-up.mp3", False)
         else: raise Exception("Unknown sound name: "+sound_name)
+        """
 
 # format is reverse HTML hex!! AGBR
 class Color:
