@@ -36,33 +36,31 @@ double get_clock_microseconds_win()
     if (!initialized) {
         LARGE_INTEGER performanceFrequency;
         initialized = 1;
-        usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
-        if (usePerformanceCounter) {
-            QueryPerformanceCounter(&offset);
-            frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
-        }
-        else {
+    //    usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
+    //    if (usePerformanceCounter) {
+    //        QueryPerformanceCounter(&offset);
+    //        frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
+    //    }
+    //    else {
             offset = getFILETIMEoffset();
             frequencyToMicroseconds = 10.;
-        }
+    //    }
     }
-    if (usePerformanceCounter) QueryPerformanceCounter(&t);
-    else {
+    //if (usePerformanceCounter) QueryPerformanceCounter(&t);
+    //else {
         GetSystemTimeAsFileTime(&f);
         t.QuadPart = f.dwHighDateTime;
         t.QuadPart <<= 32;
         t.QuadPart |= f.dwLowDateTime;
-    }
+    //}
 
     t.QuadPart -= offset.QuadPart;
     microseconds = (double)t.QuadPart / frequencyToMicroseconds;
-    t.QuadPart = microseconds;
+ //   t.QuadPart = microseconds;
     return microseconds;
 }
 
 void sleep_microseconds_win(long microseconds) {
-    int alertable = 0; // Thread alertable state. 0 = thread cannot cannot break on call to NtAlertThread.
-    int duration = microseconds / 1000; // Duration of the delay in milliseconds
-
-    NtDelayExecution(alertable, duration);
+    int dwMilliseconds = microseconds / 1000; // Duration of the delay in milliseconds
+    SleepEx(dwMilliseconds, 0);
 }

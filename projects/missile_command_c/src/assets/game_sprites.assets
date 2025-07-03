@@ -1,0 +1,90 @@
+from compile_assets import Image
+
+class Color:
+    RED=0xFF0717FF        #red plane, red missile
+    LIGHT_RED=0xFF0001FD  #light part of plane
+    YELLOW=0xFF00F1FF     #yellow explosion
+    BLACK=0xFF000000      #black background
+
+    DARK_BLUE=0xFFAD0000  #dark part of alien eye
+    BLUE=0xFFD50C05       #blue crosshairs, blue missiles
+    LIGHT_BLUE=0xFFFFDF09 #light blue in cities (mixed with blue)
+
+    ORANGE=0xFF00A6FF     #tips of alien antenna
+
+    GREEN=0xFF51E852     #green explosions, green land (yellow background)
+    LAVENDER=0xFFF303E8  #different level?
+
+    TRANSPARENT=0x00000000 #transparent
+
+
+
+plane_right = Image(18,11,
+              {".":Color.TRANSPARENT,
+               "B":Color.BLACK,
+               "R":Color.RED,
+               "X":Color.RED,
+               "r":Color.LIGHT_RED},
+              """
+              ....BRr...........
+              .Br..BRr..........
+              .BRr.BRRr.........
+              .BRRRRRRRRRRRr....
+              BRRRRRRRXRRRRRRr..
+              ...BRRRRRRRRRRRRRr
+              ....BRRRRr........
+              ....BRRRr.........
+              ...BRRRr..........
+              ...BRRr...........
+              ..BRRr............
+
+              """)
+
+
+plane_left = Image(18,11,
+              {".":Color.TRANSPARENT,
+               "B":Color.BLACK,
+               "R":Color.RED,
+               "X":Color.RED,
+               "r":Color.LIGHT_RED},
+              """
+              ....BRr...........
+              .Br..BRr..........
+              .BRr.BRRr.........
+              .BRRRRRRRRRRRr....
+              BRRRRRRRXRRRRRRr..
+              ...BRRRRRRRRRRRRRr
+              ....BRRRRr........
+              ....BRRRr.........
+              ...BRRRr..........
+              ...BRRr...........
+              ..BRRr............
+
+              """,
+              flip=True)
+
+
+alien = Image(14,13,
+              {".":Color.TRANSPARENT,
+               "B":Color.BLACK,
+               "R":Color.RED,
+               "r":Color.LIGHT_RED,
+               "X":Color.LIGHT_RED,
+               "O":Color.ORANGE,
+               "D":Color.DARK_BLUE,
+               "b":Color.BLUE},
+              """
+              BO..........BO
+              .Br........Br.
+              ..Br.BRRr.Br..
+              ...BRRRRRRr...
+              ...BRRRRRRr...
+              ..BrDbRrDbRr..
+              ..BrDbRXDbRr..
+              ..BrDbRrDbRr..
+              ...BRRRRRRr...
+              ...BRRRRRRr...
+              ..Br.BRRr.Br..
+              .Br........Br.
+              BO..........BO
+              """)
