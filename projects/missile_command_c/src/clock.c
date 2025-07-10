@@ -214,7 +214,7 @@ void print_func(VOID_PTR msg) {
 
 
 
-int main() {
+int clk_main() {
 
     printf("fps=%d\n", FRAMES_PER_SECOND_16/16);
     printf("tps=%d\n", TICKS_PER_SECOND_16/16);
