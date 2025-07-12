@@ -19,12 +19,10 @@ typedef struct tagMouseClick {
 } MouseClick;
 
 
-#define MODE_NORMAL 1
-#define MODE_XOR    2
-#define MODE_ERASE  3
+#define CANVAS_MODE_NORMAL 1
+#define CANVAS_MODE_XOR    2
 
-
-void Canvas_set_color(Canvas* pCanvas, U32 color, U8 mode, BOOLEAN erase_later);
+void Canvas_set_color(Canvas* pCanvas, U32 color, U8 mode);
 void Canvas_write_pixel(Canvas* pCanvas, U16 x, U16 y, U32 color);
 void Canvas_filled_rect(Canvas* pCanvas, Rect* pRect, U32 color);
 

@@ -2,10 +2,10 @@
 
 #include <assert.h>
 
-typedef void (*PUT_PIXEL_FUNC)(void* canvasPtr, U16 x, U16 y);
+typedef void (*PUT_PIXEL_FUNC)(void* canvasPtr, I16 x, I16 y);
 
 // https://stackoverflow.com/questions/1201200/fast-algorithm-for-drawing-filled-circles
-void Shape_filled_circle(U16 x, U16 y, U16 r, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
+void Shape_filled_circle(I16 x, I16 y, I16 r, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
     I32 r2 = r * r;
     I32 area = r2 << 2;
     I32 rr = r << 1;
@@ -19,12 +19,12 @@ void Shape_filled_circle(U16 x, U16 y, U16 r, PUT_PIXEL_FUNC putPixelFunc, void*
     }
 }
 
-void Shape_circle(U16 x0, U16 y0, U16 radius, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
-    I32 f = 1 - radius;
-    I32 ddf_x = 1;
-    I32 ddf_y = -2 * radius;
-    I32 x = 0;
-    I32 y = radius;
+void Shape_circle(I16 x0, I16 y0, I16 radius, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
+    I16 f = 1 - radius;
+    I16 ddf_x = 1;
+    I16 ddf_y = -2 * radius;
+    I16 x = 0;
+    I16 y = radius;
     (*putPixelFunc)(canvasPtr, x0, y0 + radius);
     (*putPixelFunc)(canvasPtr, x0, y0 - radius);
     (*putPixelFunc)(canvasPtr, x0 + radius, y0);
@@ -51,23 +51,24 @@ void Shape_circle(U16 x0, U16 y0, U16 radius, PUT_PIXEL_FUNC putPixelFunc, void*
 }
 
 
-void Shape_line(U16 x0, U16 y0, U16 x1, U16 y1, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
+void Shape_line(I16 x0, I16 y0, I16 x1, I16 y1, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
 
     // Bresenham's algorithm
-    I32 dx = abs(x1 - x0);
-    I32 dy = abs(y1 - y0);
-    I32 x = x0;
-    I32 y = y0;
-    I32 sx = (x0 > x1) ? -1 : 1;
-    I32 sy = (y0 > y1) ? -1 : 1;
-    I32 err = dx - dy;
+    const I16 dx = abs(x1 - x0);
+    const I16 dy = abs(y1 - y0);
+    const I16 sx = (x0 > x1) ? -1 : 1;
+    const I16 sy = (y0 > y1) ? -1 : 1;
+
+    I16 x = x0;
+    I16 y = y0;
+    I16 err = dx - dy;
 
     while (1) {
         (*putPixelFunc)(canvasPtr, x, y);
         if (x == x1 && y == y1) {
             break;
         }
-        U32 e2 = 2 * err;
+        I16 e2 = 2 * err;
         if (e2 > -dy) {
             err -= dy;
             x += sx;
@@ -79,7 +80,7 @@ void Shape_line(U16 x0, U16 y0, U16 x1, U16 y1, PUT_PIXEL_FUNC putPixelFunc, voi
     }
 }
     
-void putPixelInArray(void* canvasPtr, U16 x, U16 y) {
+void putPixelInArray(void* canvasPtr, I16 x, I16 y) {
     SHAPE_CANVAS* arrCanvas = canvasPtr; //hope it is this type
     assert(arrCanvas->max_point_cnt <= MAX_POINTS);
     assert(arrCanvas->point_cnt < MAX_POINTS);
@@ -89,7 +90,7 @@ void putPixelInArray(void* canvasPtr, U16 x, U16 y) {
     arrCanvas->point_cnt++;
 }
 
-void Shape_filled_octogon(U16 centerx, U16 centery, U16 radius, float slope_dx, float slope_dy, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
+void Shape_filled_octogon(I16 centerx, I16 centery, I16 radius, float slope_dx, float slope_dy, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
     U16 width = radius * 2;
     U16 height = radius * 2;
     SHAPE_LINE lines[MAX_LINES];
@@ -100,25 +101,25 @@ void Shape_filled_octogon(U16 centerx, U16 centery, U16 radius, float slope_dx, 
         U16 start_x = lines[i].start_x;
         U16 end_x = lines[i].end_x;
         
-        I32 py = centery + y - radius;
-        I32 x;
+        I16 py = centery + y - radius;
+        I16 x;
         for (x = start_x; x < end_x; x++) {
-            I32 px = centerx + x - radius;
+            I16 px = centerx + x - radius;
             (*putPixelFunc)(canvasPtr, px, py);
         }
     }
 }
 
-U16 Shape_get_octogon_lines(U16 width, U16 height, float slope_dx, float slope_dy, SHAPE_LINE* lines, U16 max_line_cnt) {
+U16 Shape_get_octogon_lines(I16 width, I16 height, float slope_dx, float slope_dy, SHAPE_LINE* lines, I16 max_line_cnt) {
 
-    U16 cornerx=0, cornery=0;
-    Shape_find_octogon_corner(width / 2, height / 2, slope_dx, slope_dy, &cornerx, &cornery);
+    SHAPE_POINT corner = { 0,0 };
+    Shape_find_octogon_corner(width / 2, height / 2, slope_dx, slope_dy, &corner);
 
     SHAPE_CANVAS arrCanvas;
     arrCanvas.point_cnt = 0;
     arrCanvas.max_point_cnt = MAX_POINTS;
-    Shape_line(width / 2, 0, cornerx, cornery, putPixelInArray, &arrCanvas);
-    Shape_line(cornerx, cornery, 0, height / 2, putPixelInArray, &arrCanvas);
+    Shape_line(width / 2, 0, corner.x, corner.y, putPixelInArray, &arrCanvas);
+    Shape_line(corner.x, corner.y, 0, height / 2, putPixelInArray, &arrCanvas);
 
     assert(height <= max_line_cnt);
     U16 line_cnt = 0;

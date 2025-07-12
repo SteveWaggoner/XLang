@@ -5,14 +5,14 @@
 #include <assert.h>
 
 struct tagClock;
-typedef void (*ALARM_FUNC)(VOID_PTR param);
+typedef void (*ALARM_FUNC)(void* param);
 
 typedef struct tagAlarm {
     Item       item;
     struct tagClock* pClock;
     U16        alarm_ticks;
     ALARM_FUNC callback;
-    VOID_PTR   param;
+    void*      param;
 } Alarm;
 
 
@@ -106,7 +106,7 @@ void wait_until(U32 until_clock) {
 //#endif
 
 
-void Alarm_init(Alarm* pAlarm, Clock* pClock, U16 alarm_ticks, ALARM_FUNC callback, VOID_PTR param) {
+void Alarm_init(Alarm* pAlarm, Clock* pClock, U16 alarm_ticks, ALARM_FUNC callback, void* param) {
     assert(pAlarm);
     assert(pClock);
     assert(alarm_ticks>0);
@@ -190,7 +190,7 @@ void Clock_reset(Clock* pClock) {
     CLEAR_LIST(Alarm,pClock->alarms);
 }
 
-void Clock_set_alarm(Clock* pClock, U16 wait_seconds, ALARM_FUNC callback, VOID_PTR param) {
+void Clock_set_alarm(Clock* pClock, U16 wait_seconds, ALARM_FUNC callback, void* param) {
     Alarm* pAlarm = ALLOC_ITEM(Alarm, pClock->alarms);
     U16 sleep_until = pClock->ticks + (int)(wait_seconds * TICKS_PER_SECOND_16/16);
     Alarm_init(pAlarm, pClock, sleep_until, callback, param);
@@ -208,7 +208,7 @@ void Clock_check_alarms(Clock* pClock) {
 }
 
 
-void print_func(VOID_PTR msg) {
+void print_func(void* msg) {
     printf("%s\n", (char*)msg);
 }
 
