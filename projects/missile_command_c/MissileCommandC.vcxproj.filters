@@ -19,6 +19,12 @@
     <Filter Include="Source Files\linux">
       <UniqueIdentifier>{e9613e64-974e-4d12-9d5b-89249a54b3b0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\assets">
+      <UniqueIdentifier>{889da3a2-3e1f-4773-8389-7cb9226a88f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\sdl">
+      <UniqueIdentifier>{1c6a55f1-6d0d-4183-a86c-59b278a2a2be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\list.c">
@@ -36,5 +42,30 @@
     <ClCompile Include="src\win\win_clock_api.c">
       <Filter>Source Files\win</Filter>
     </ClCompile>
+    <ClCompile Include="src\assets\assets.c">
+      <Filter>Source Files\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\transform.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sdl\sdl_graphics_api.c">
+      <Filter>Source Files\sdl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shape.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MissileCommandC.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

@@ -2,6 +2,7 @@
 #include "../graphics_api.h"
 
 #include "../transform.h"
+#include "../shape.h"
 
 #include <assert.h>
 
@@ -168,7 +169,7 @@ void Canvas_draw_line(Canvas* pCanvas, U16 x1, U16 y1, U16 x2, U16 y2) {
 void Canvas_draw_filled_circle(Canvas* pCanvas, U16 x, U16 y, U16 radius) {
     U16 sx, sy;
     Transform_to_screen(&pCanvas->transform, x, y, &sx, &sy);
-    Shade_filled_circle(sx, sy, radius, Canvas_put_pixel, pCanvas);
+    Shape_filled_circle(sx, sy, radius, Canvas_put_pixel, pCanvas);
 }
 
 void Canvas_draw_filled_octogon(Canvas* pCanvas, U16 x, U16 y, U16 radius, U8 slope_dx, U8 slope_dy) {

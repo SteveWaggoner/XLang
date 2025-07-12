@@ -104,12 +104,21 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\cygwin64\home\stwag\github\XLang\tools\SDL3_ttf-3.2.2\SDL3_ttf-3.2.2\include;C:\cygwin64\home\stwag\github\XLang\tools\SDL3-devel-3.2.16-VC\SDL3-3.2.16\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NTDLL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>NTDLL.lib;SDL3.lib;SDL3_ttf.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\cygwin64\home\stwag\github\XLang\tools\SDL3_ttf-devel-3.2.2-VC\SDL3_ttf-3.2.2\lib\x64;C:\cygwin64\home\stwag\github\XLang\tools\SDL3-devel-3.2.16-VC\SDL3-3.2.16\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y "$(ProjectDir)..\..\tools\SDL3-devel-3.2.16-VC\SDL3-3.2.16\lib\x64\SDL3.dll" "$(OutDir)"
+xcopy /y "$(ProjectDir)..\..\tools\SDL3_ttf-devel-3.2.2-VC\SDL3_ttf-3.2.2\lib\x64\SDL3_ttf.dll" "$(OutDir)"
+
+
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -128,11 +137,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\assets\assets.c" />
     <ClCompile Include="src\clock.c" />
     <ClCompile Include="src\linux\linux_clock_api.c" />
     <ClCompile Include="src\list.c" />
+    <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\sdl\sdl_graphics_api.c" />
+    <ClCompile Include="src\shape.c" />
+    <ClCompile Include="src\transform.c" />
     <ClCompile Include="src\utils.c" />
     <ClCompile Include="src\win\win_clock_api.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MissileCommandC.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
