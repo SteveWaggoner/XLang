@@ -33,7 +33,7 @@ void Sprite_init(Sprite* pSprite, U16 width, U16 height) {
 }
 
 
-App g_app = { 0,0,0,0 };
+App g_app;
 void App_init(U8* title, U8 mode) {
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_EVENTS | SDL_INIT_SENSOR | SDL_INIT_GAMEPAD);
@@ -41,7 +41,7 @@ void App_init(U8* title, U8 mode) {
 
     switch (mode)
     {
-    case MODE_SVGA:
+    case APP_MODE_SVGA:
     {
         g_app.width = 800;
         g_app.height = 600;
@@ -49,7 +49,7 @@ void App_init(U8* title, U8 mode) {
         g_app.scale_y = 1;
         break;
     }
-    case MODE_VGA:
+    case APP_MODE_VGA:
     {
         g_app.width = 320;
         g_app.height = 200;
@@ -57,7 +57,7 @@ void App_init(U8* title, U8 mode) {
         g_app.scale_y = 4;
         break;
     }
-    case MODE_C64_MC:
+    case APP_MODE_C64_MC:
     {
         g_app.width = 160;
         g_app.height = 200;
@@ -71,19 +71,102 @@ void App_init(U8* title, U8 mode) {
     }
     }
 
-    g_app.window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, g_app.width * g_app.scale_x, g_app.height * g_app.scale_y, 0);
-    g_app.renderer = SDL_CreateRenderer(g_app.window, -1, 0);
+    g_app.window = SDL_CreateWindow(title, g_app.width * g_app.scale_x, g_app.height * g_app.scale_y, 0);
+    assert(g_app.window);
+    g_app.renderer = SDL_CreateRenderer(g_app.window, NULL);
+
+    assert(g_app.renderer);
+    g_app.texture = NULL;
+    g_app.has_key = 0;
+    g_app.has_mouse_click = 0;
 
     Transform_init(&g_app.transform, g_app.width, g_app.height, 0, 200, 320, 0);
 
     INIT_LIST(Sprite, g_app.sprites, FALSE);
 
-
     SDL_Surface* surface = SDL_CreateSurface(g_app.width, g_app.height, SDL_PIXELFORMAT_ARGB8888);
     Canvas_init(&g_app.canvas, surface);
-
     SDL_Surface* surface_merged = SDL_CreateSurface(g_app.width, g_app.height, SDL_PIXELFORMAT_ARGB8888);
     Canvas_init(&g_app.canvas_merged, surface_merged);
+}
+
+void App_poll_events() {
+    while (SDL_PollEvent(&g_app.event) != 0) {
+
+        switch (g_app.event.type) {
+        case SDL_EVENT_QUIT:
+        {
+            exit(0);
+        }
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        {
+            float mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+            Transform_to_world(&g_app.transform, mouseX, mouseY, &g_app.last_mouse_click.x, &g_app.last_mouse_click.y);
+
+            // for stretched canvas
+            g_app.last_mouse_click.x = g_app.last_mouse_click.x / g_app.scale_x;
+            g_app.last_mouse_click.y = g_app.last_mouse_click.y / g_app.scale_y;
+
+            g_app.last_mouse_click.button = g_app.event.button.button;
+            g_app.has_mouse_click = 1;
+        }
+        case SDL_EVENT_KEY_DOWN:
+        {
+            g_app.last_key = g_app.event.key.key;
+            g_app.has_key = 1;
+        }
+        }
+    }
+}
+
+
+void App_finish_draw() {
+    if (g_app.texture != NULL) {
+        SDL_DestroyTexture(g_app.texture);
+    }
+
+    Canvas_clear(&g_app.canvas_merged);
+    Canvas_draw_image(&g_app.canvas_merged, &g_app.canvas, 0, 0);
+    if (g_app.sprites.list.num_active > 0) {
+        I16 i;
+        for (i = 0; i < g_app.sprites.list.max_items; i++) {
+            Sprite* sprite = &g_app.sprites.sprite[i];
+            if (sprite->item.active) {
+                Canvas_draw_image(&g_app.canvas_merged, &sprite->image.canvas, sprite->x - sprite->image.centerx, sprite->y - sprite->image.centery);
+            }
+        }
+    }
+
+    g_app.texture = SDL_CreateTextureFromSurface(g_app.renderer, g_app.canvas_merged.surface);
+    SDL_RenderTexture(g_app.renderer, g_app.texture, NULL, NULL);
+    SDL_RenderPresent(g_app.renderer);
+}
+
+Canvas* App_canvas() {
+    return &g_app.canvas;
+}
+
+
+
+
+I16 App_check_key() {
+    if (g_app.has_key) {
+        g_app.has_key = 0;
+        return g_app.last_key;
+    } else {
+        return 0;
+    }
+}
+
+MouseClick* App_check_mouse() {
+    if (g_app.has_mouse_click) {
+        g_app.has_mouse_click = 0;
+        return &g_app.last_mouse_click;
+    }
+    else {
+        return 0;
+    }
 }
 
 
@@ -138,7 +221,13 @@ void Canvas_clear(Canvas* pCanvas) {
 }
 
 void Canvas_filled_rect(Canvas* pCanvas, Rect* pRect, U32 color) {
-    SDL_FillSurfaceRect(pCanvas->surface, pRect, color);
+    if (pRect) {
+        SDL_Rect rect = { pRect->x, pRect->y, pRect->w, pRect->h }; //typecast generic Rect to SDL_Rect
+        SDL_FillSurfaceRect(pCanvas->surface, &rect, color);
+    }
+    else {
+        SDL_FillSurfaceRect(pCanvas->surface, NULL, color);
+    }
 }
 
 void Canvas_draw_pixel(Canvas* pCanvas, U16 x, U16 y) {

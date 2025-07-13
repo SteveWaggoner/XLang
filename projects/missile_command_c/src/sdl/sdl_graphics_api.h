@@ -9,9 +9,9 @@
 #include "SDL3/SDL.h"
 #include "SDL3_ttf/SDL_ttf.h"
 
-#define MODE_SVGA   1
-#define MODE_VGA    2
-#define MODE_C64_MC 3
+#define APP_MODE_SVGA   1
+#define APP_MODE_VGA    2
+#define APP_MODE_C64_MC 3
 
 typedef struct tagCanvas {
     SDL_Surface* surface;
@@ -35,7 +35,7 @@ typedef struct tagSprite {
 
 typedef struct {
     List list;
-    Sprite alien[20];
+    Sprite sprite[20];
 } SpriteList;
 
 typedef struct tagApp {
@@ -50,12 +50,23 @@ typedef struct tagApp {
 
     SDL_Window* window;
     SDL_Renderer* renderer;
+    SDL_Event event;
+    SDL_Texture* texture;
+
+    U8 has_mouse_click;
+    U8 has_key;
+    MouseClick last_mouse_click;
+    I16 last_key;
 
     SpriteList sprites;
     Canvas canvas;
     Canvas canvas_merged;
 
 } App;
+
+
+void Canvas_clear(Canvas* pCanvas);
+void Canvas_draw_image(Canvas* pCanvas, Canvas* pImage, U16 x, U16 y);
 
 #endif
 

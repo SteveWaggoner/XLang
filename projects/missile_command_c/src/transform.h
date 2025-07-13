@@ -5,14 +5,14 @@
 
 // Internal class for 2-D coordinate transformations
 typedef struct tagTransform {
-    U16 xbase;
-    U16 ybase;
-    U16 xscale;
-    U16 yscale;
+    I16 xbase;
+    I16 ybase;
+    I16 xscale;
+    I16 yscale;
 } Transform;
 
-void Transform_init(Transform* pTransform, U16 w, U16 h, U16 xlow, U16 ylow, U16 xhigh, U16 yhigh);
-void Transform_to_screen(Transform* pTransform, U16 x, U16 y, U16* pXs, U16* pYs);
-void Transform_to_world(Transform* pTransform, U16 xs, U16 ys, U16* pX, U16* pY);
+void Transform_init(Transform* pTransform, I16 w, I16 h, I16 xlow, I16 ylow, I16 xhigh, I16 yhigh);
+void Transform_to_screen(Transform* pTransform, I16 x, I16 y, I16* pXs, I16* pYs);
+void Transform_to_world(Transform* pTransform, I16 xs, I16 ys, I16* pX, I16* pY);
 
 #endif
