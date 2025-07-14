@@ -1,6 +1,7 @@
 #include "shape.h"
 
 #include <assert.h>
+#include <math.h>
 
 typedef void (*PUT_PIXEL_FUNC)(void* canvasPtr, I16 x, I16 y);
 
@@ -14,7 +15,7 @@ void Shape_filled_circle(I16 x, I16 y, I16 r, PUT_PIXEL_FUNC putPixelFunc, void*
         I32 tx = (i % rr) - r;
         I32 ty = (i / rr) - r;
         if (tx * tx + ty * ty <= r2) {
-            (*putPixelFunc)(canvasPtr, x + tx, y + ty);
+            (*putPixelFunc)(canvasPtr, (I16) (x + tx), (I16) (y + ty));
         }
     }
 }
@@ -79,9 +80,9 @@ void Shape_line(I16 x0, I16 y0, I16 x1, I16 y1, PUT_PIXEL_FUNC putPixelFunc, voi
         }
     }
 }
-    
+
 void putPixelInArray(void* canvasPtr, I16 x, I16 y) {
-    SHAPE_CANVAS* arrCanvas = canvasPtr; //hope it is this type
+    SHAPE_CANVAS* arrCanvas = (SHAPE_CANVAS*) canvasPtr; //hope it is this type
     assert(arrCanvas->max_point_cnt <= MAX_POINTS);
     assert(arrCanvas->point_cnt < MAX_POINTS);
 
@@ -97,13 +98,13 @@ void Shape_filled_octogon(I16 centerx, I16 centery, I16 radius, float slope_dx, 
     U16 line_cnt = Shape_get_octogon_lines(width, height, slope_dx, slope_dy, lines, MAX_LINES);
     U16 i;
     for (i = 0; i < line_cnt; i++) {
-        U16 y = lines[i].y;
-        U16 start_x = lines[i].start_x;
-        U16 end_x = lines[i].end_x;
+        I16 y = lines[i].y;
+        I16 start_x = lines[i].start_x;
+        I16 end_x = lines[i].end_x;
         
         I16 py = centery + y - radius;
         I16 x;
-        for (x = start_x; x < end_x; x++) {
+        for (x = start_x; x <= end_x; x++) {
             I16 px = centerx + x - radius;
             (*putPixelFunc)(canvasPtr, px, py);
         }
@@ -115,7 +116,7 @@ U16 Shape_get_octogon_lines(I16 width, I16 height, float slope_dx, float slope_d
     SHAPE_POINT corner = { 0,0 };
     Shape_find_octogon_corner(width / 2, height / 2, slope_dx, slope_dy, &corner);
 
-    SHAPE_CANVAS arrCanvas;
+    SHAPE_CANVAS arrCanvas = { 0 };
     arrCanvas.point_cnt = 0;
     arrCanvas.max_point_cnt = MAX_POINTS;
     Shape_line(width / 2, 0, corner.x, corner.y, putPixelInArray, &arrCanvas);
@@ -134,14 +135,19 @@ U16 Shape_get_octogon_lines(I16 width, I16 height, float slope_dx, float slope_d
         U16 x = arrCanvas.points[i].x;
         U16 y = arrCanvas.points[i].y;
         assert(y < max_line_cnt);
+        lines[y].y = y;
         lines[y].start_x = x;
         lines[y].end_x = width - x;
 
-        lines[height - y - 1].start_x = x;
-        lines[height - y - 1].end_x = width - x;
+        U16 y2 = height - y - 1;
+        assert(y2 < max_line_cnt);
+
+        lines[y2].y = y2;
+        lines[y2].start_x = x;
+        lines[y2].end_x = width - x;        
     }
 
-    return arrCanvas.point_cnt;
+    return height;
 }
 
 
@@ -160,8 +166,8 @@ void Shape_find_octogon_corner(U16 half_width, U16 half_height, float slope_dx, 
 
     float slope_A = slope_dy / slope_dx;
     float slope_B = slope_dx / slope_dy;
-    U16 y_int_A = Math_y_intercept(&A1, slope_A);
-    U16 y_int_B = Math_y_intercept(&B1, slope_B);
+    I16 y_int_A = (I16) Math_y_intercept(&A1, slope_A);
+    I16 y_int_B = (I16) Math_y_intercept(&B1, slope_B);
 
     Math_line_intersect(slope_A, y_int_A, slope_B, y_int_B, pnt);
 
@@ -174,7 +180,7 @@ void Shape_find_octogon_corner(U16 half_width, U16 half_height, float slope_dx, 
 float Math_slope(SHAPE_POINT* P1, SHAPE_POINT* P2) {
     // dy / dx
     // (y2 - y1) / (x2 - x1)
-    return (P2->y - P1->y) / (P2->x - P1->x);
+    return (float)(P2->y - P1->y) / (P2->x - P1->x);
 }
 
 float Math_y_intercept(SHAPE_POINT* P1, float slope) {
@@ -184,10 +190,10 @@ float Math_y_intercept(SHAPE_POINT* P1, float slope) {
     return P1->y - slope * P1->x;
 }
 
-U8 Math_line_intersect(float m1, U16 b1, float m2, U16 b2, SHAPE_POINT* retPnt) {
+BOOLEAN Math_line_intersect(float m1, I16 b1, float m2, I16 b2, SHAPE_POINT* retPnt) {
     if (m1 == m2) {
-        printf("These lines are parallel!!!\n");
-        return 0;
+        // These lines are parallel!!!
+        return FALSE;
     }
     // y = mx + b
     // Set both lines equal to find the intersection point in the x direction
@@ -195,19 +201,19 @@ U8 Math_line_intersect(float m1, U16 b1, float m2, U16 b2, SHAPE_POINT* retPnt) 
     // m1 * x - m2 * x = b2 - b1
     // x * (m1 - m2) = b2 - b1
     // x = (b2 - b1) / (m1 - m2)
-    retPnt->x = (b2 - b1) / (m1 - m2);
+    retPnt->x = (I16) ( (b2 - b1) / (m1 - m2) );
     // Now solve for y -- use either line, because they are equal here
     // y = mx + b
-    retPnt->y = m1 * retPnt->x + b1;
+    retPnt->y = (I16) (m1 * retPnt->x + b1);
 
-    return 1;
+    return TRUE;
 }
 
-U8 Math_line_intersect_test(SHAPE_POINT* A1, SHAPE_POINT* A2, SHAPE_POINT* B1, SHAPE_POINT* B2) {
+BOOLEAN Math_line_intersect_test(SHAPE_POINT* A1, SHAPE_POINT* A2, SHAPE_POINT* B1, SHAPE_POINT* B2) {
     float slope_A = Math_slope(A1, A2);
     float slope_B = Math_slope(B1, B2);
-    U16   y_int_A = Math_y_intercept(A1, slope_A);
-    U16   y_int_B = Math_y_intercept(B1, slope_B);
+    I16   y_int_A = (I16) Math_y_intercept(A1, slope_A);
+    I16   y_int_B = (I16) Math_y_intercept(B1, slope_B);
     SHAPE_POINT retPnt;
     return Math_line_intersect(slope_A, y_int_A, slope_B, y_int_B, &retPnt);
 }

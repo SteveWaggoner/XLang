@@ -20,23 +20,12 @@ typedef struct tagCanvas {
     U32 color;
 } Canvas;
 
-typedef struct tagImage {
-    Canvas canvas;
-    I16 centerx;
-    I16 centery;
-} Image;
-
-typedef struct tagSprite {
-    Item item;
-    Image image;
-    I16 x;
-    I16 y;
-} Sprite;
-
+#pragma pack(push,1)
 typedef struct {
     List list;
-    Sprite sprite[20];
+    Sprite sprite[2];
 } SpriteList;
+#pragma pack(pop)
 
 typedef struct tagApp {
     U16 width;
@@ -64,9 +53,6 @@ typedef struct tagApp {
 
 } App;
 
-
-void Canvas_clear(Canvas* pCanvas);
-void Canvas_draw_image(Canvas* pCanvas, Canvas* pImage, U16 x, U16 y);
 
 #endif
 

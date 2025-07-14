@@ -38,18 +38,12 @@ void List_init(List* pList, U8 item_size, U8 max_items, BOOLEAN active) {
 
     pList->next_alloc = 0;
 
-
-    printf("List_init %p max_items=%d, sizeof(List) = %d, item_size = %d\n", pList, max_items, sizeof(List), item_size);
+//    printf("List_init %p max_items=%d, sizeof(List) = %d, item_size = %d\n", pList, max_items, sizeof(List), item_size);
 
     for(i=0; i<max_items; i++) {
         Item* pItem = (Item*) (((U8*) pList) + sizeof(List) + (item_size * i));
-
-        //Alarm_dump(pItem);
-
         pItem->pList = pList;
         pItem->active = active;
-
-  //      Alarm_dump(pItem);
     }
 
 }
@@ -229,6 +223,8 @@ typedef struct {
     Alien alien[6];
 } AlienList;
 
+
+/*
 const int debug=123;
 
 int xmain() {
@@ -294,5 +290,6 @@ int xmain() {
 
     hash = HASH_LIST(Alien, aliens);
     printf("hash = %d\n", hash);
+    return 0;
 }
-
+*/

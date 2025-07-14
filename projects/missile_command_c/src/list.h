@@ -3,6 +3,7 @@
 
 #include "c6502.h"
 
+#pragma pack(push,1)
 typedef struct {
     U8 item_size;
     U8 max_items;
@@ -19,6 +20,7 @@ typedef struct {
     Item* a;
     Item* b;
 } Hit;
+#pragma pack(pop)
 
 typedef BOOLEAN (*COLLISION_FUNC)(Item* pItem, Item* pOtherItem);
 typedef void (*ITEM_DUMP_FUNC)(Item* pItem);

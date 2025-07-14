@@ -1,5 +1,7 @@
 
 #include "list.h"
+#include "utils.h"
+
 
 #include <stdio.h>
 #include <assert.h>
@@ -58,17 +60,17 @@ CLOCK = 1/60 of a second
 U32 get_clock() {
 
     static long long first_clock = 0;
-    long long clock = CLOCKS_PER_SECOND * get_clock_microseconds_win() / 1000000;
+    long long clock = (long long) (CLOCKS_PER_SECOND * get_clock_microseconds_win() / 1000000);
 
     if (first_clock == 0) {
         first_clock = clock;
     }
 
-    return clock - first_clock;
+    return (U32) (clock - first_clock);
 }
 
 void sleep_for_duration(U32 duration) {
-    return sleep_microseconds_win(1000000 * duration / CLOCKS_PER_SECOND);
+    sleep_microseconds_win(1000000 * duration / CLOCKS_PER_SECOND);
 }
 
 
@@ -176,7 +178,7 @@ void Clock_tick(Clock* pClock) {
 
     double actual_total_duration_in_seconds = (1.0 * actual_total_duration / CLOCKS_PER_SECOND);
     if ( actual_total_duration_in_seconds > 0 ) {
-        pClock->actual_fps  = 1.0 * pClock->frame_cnt / actual_total_duration_in_seconds;
+        pClock->actual_fps  = (U16) (1.0 * pClock->frame_cnt / actual_total_duration_in_seconds);
      }
 
     pClock->ticks++;
@@ -192,7 +194,7 @@ void Clock_reset(Clock* pClock) {
 
 void Clock_set_alarm(Clock* pClock, U16 wait_seconds, ALARM_FUNC callback, void* param) {
     Alarm* pAlarm = ALLOC_ITEM(Alarm, pClock->alarms);
-    U16 sleep_until = pClock->ticks + (int)(wait_seconds * TICKS_PER_SECOND_16/16);
+    U16 sleep_until = (U16) (pClock->ticks + (int)(wait_seconds * TICKS_PER_SECOND_16/16));
     Alarm_init(pAlarm, pClock, sleep_until, callback, param);
     pAlarm->item.active = TRUE;
 }
@@ -201,7 +203,7 @@ void Clock_check_alarms(Clock* pClock) {
     int i;
     Alarm* pAlarm;
     for (i=0; i < pClock->alarms.list.max_items; i++) {
-        pAlarm = List_getItem(&pClock->alarms, i);
+        pAlarm = GET_ITEM(Alarm, pClock->alarms, i); //  (Alarm*)List_getItem((List*)&pClock->alarms, i);
         Alarm_check(pAlarm);
     }
 
@@ -235,11 +237,8 @@ int clk_main() {
     Clock_set_alarm(&myclock, 21, print_func, "you?");
 
     DUMP_LIST(Alarm, myclock.alarms);
-    printf("clock = %d\n", clock());
 
     while (myclock.ticks < 30*60) {
-
-    //    printf(" myclock.ticks = %d\n", myclock.ticks);
 
         Clock_tick(&myclock);
         Clock_check_alarms(&myclock);
@@ -248,16 +247,9 @@ int clk_main() {
             sleep_for_duration(2);
         }
 
-
-        /*
-        if (myclock.ticks % 40 == 0 ) {
-            myclock.frame_start = get_clock();
-            myclock.frame_cnt = 0;
-        }
-        */
     }
-    printf("clock = %d\n", clock());
 
     printf("Done. clock.ticks=%d\n", myclock.ticks);
+    return 0;
 }
 
