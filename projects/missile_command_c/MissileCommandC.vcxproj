@@ -115,6 +115,8 @@
     <PostBuildEvent>
       <Command>xcopy /y "$(ProjectDir)..\..\tools\SDL3-devel-3.2.16-VC\SDL3-3.2.16\lib\x64\SDL3.dll" "$(OutDir)"
 xcopy /y "$(ProjectDir)..\..\tools\SDL3_ttf-devel-3.2.2-VC\SDL3_ttf-3.2.2\lib\x64\SDL3_ttf.dll" "$(OutDir)"
+xcopy /y "$(ProjectDir)..\..\tools\SDL3-devel-3.2.16-VC\SDL3-3.2.16\lib\x64\SDL3.pdb" "$(OutDir)"
+xcopy /y "$(ProjectDir)..\..\tools\SDL3_ttf-devel-3.2.2-VC\SDL3_ttf-3.2.2\lib\x64\SDL3_ttf.pdb" "$(OutDir)"
 
 
 </Command>

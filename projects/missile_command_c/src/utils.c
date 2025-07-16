@@ -18,8 +18,8 @@ U16 djb2_hash(U8* bytes, U8 len, U16 prev_hash) {
 
 
 // https://github.com/edrosten/8bit_rng/blob/master/rng-4261412736.c
-U8 x = 1, y = 0, z = 0, a = 1;
 U8 random_byte() {
+    static U8 x = 1, y = 0, z = 0, a = 1;
 
     U8 t = x ^ (x << 4);
     x = y;

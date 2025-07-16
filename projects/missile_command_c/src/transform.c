@@ -30,14 +30,5 @@ void Transform_to_world(Transform* pTransform, I16 xs, I16 ys, I16* pX, I16* pY)
     *pY = y;
 }
 
-void t_main() {
-
-    Transform t;
-    Transform_init(&t, 100, 100, 0, 0, 1000, 1000);
-
-    U16 sx = 0, sy = 0, wx = 0, wy =0;
-    Transform_to_screen(&t, 3, 3, &sx, &sy);
-    Transform_to_world(&t, 3, 3, &wx, &wy);
-}
 
 

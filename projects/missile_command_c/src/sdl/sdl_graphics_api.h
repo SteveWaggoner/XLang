@@ -20,12 +20,6 @@ typedef struct tagCanvas {
     U32 color;
 } Canvas;
 
-#pragma pack(push,1)
-typedef struct {
-    List list;
-    Sprite sprite[2];
-} SpriteList;
-#pragma pack(pop)
 
 typedef struct tagApp {
     U16 width;
@@ -47,7 +41,7 @@ typedef struct tagApp {
     MouseClick last_mouse_click;
     I16 last_key;
 
-    SpriteList sprites;
+    Sprite sprites[4];
     Canvas canvas;
     Canvas canvas_merged;
 

@@ -17,8 +17,8 @@ void Canvas_init(Canvas* pCanvas, I16 width, U16 height) {
 }
 
 void Sprite_init(Sprite* pSprite, Canvas* canvas) {
-    Item_init(&pSprite->item);
-   pSprite->canvas = canvas;
+    pSprite->active = FALSE;
+    pSprite->canvas = canvas;
     pSprite->x = 0;
     pSprite->y = 0;
     pSprite->centerx = 0;
@@ -77,7 +77,7 @@ void App_init(U8* title, U8 mode) {
 
     Transform_init(&g_app.transform, g_app.width, g_app.height, 0, 200, 320, 0);
 
-    INIT_LIST(Sprite, g_app.sprites, FALSE);
+    SET_ALL_INACTIVE(Sprite, g_app.sprites);
 
     Canvas_init(&g_app.canvas,        g_app.width, g_app.height);
     Canvas_init(&g_app.canvas_merged, g_app.width, g_app.height);
@@ -121,13 +121,12 @@ void App_finish_draw() {
 
     Canvas_clear(&g_app.canvas_merged);
     Canvas_draw_image(&g_app.canvas_merged, &g_app.canvas, 0, 0);
-    if (g_app.sprites.list.num_active > 0) {
-        I16 i;
-        for (i = 0; i < g_app.sprites.list.max_items; i++) {
-            Sprite* sprite = &g_app.sprites.sprite[i];
-            if (sprite->item.active) {
-                Canvas_draw_image(&g_app.canvas_merged, sprite->canvas, sprite->x - sprite->centerx, sprite->y - sprite->centery);
-            }
+        
+    I16 i;
+    for (i = 0; i < LIST_SIZE(Sprite, g_app.sprites); i++) {
+        Sprite* sprite = &g_app.sprites[i];
+        if (sprite->active) {
+            Canvas_draw_image(&g_app.canvas_merged, sprite->canvas, sprite->x - sprite->centerx, sprite->y - sprite->centery);
         }
     }
 
@@ -147,12 +146,12 @@ Sprite* App_sprite(U16 width, U16 height) {
     Canvas* canvas = malloc(sizeof(Canvas)); //memory leak!
     Canvas_init(canvas, width, height);
     Sprite_init(sprite, canvas);
-    sprite->item.active = TRUE;
+    sprite->active = TRUE;
 
     void* huh0 = &g_app.sprites;
     void* huh1 = GET_ITEM(Sprite, g_app.sprites, 0);
     int huhsize = sizeof(g_app.sprites);
-    Sprite* huh = &g_app.sprites.sprite[0];
+    Sprite* huh = &g_app.sprites[0];
 
     return sprite;
 }

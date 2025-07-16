@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <math.h>
 
-typedef void (*PUT_PIXEL_FUNC)(void* canvasPtr, I16 x, I16 y);
-
 // https://stackoverflow.com/questions/1201200/fast-algorithm-for-drawing-filled-circles
 void Shape_filled_circle(I16 x, I16 y, I16 r, PUT_PIXEL_FUNC putPixelFunc, void* canvasPtr) {
     I32 r2 = r * r;

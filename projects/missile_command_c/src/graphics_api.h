@@ -9,7 +9,7 @@ struct tagCanvas;
 typedef struct tagCanvas Canvas;
 
 typedef struct tagSprite {
-    Item item;
+    BOOLEAN active;
     Canvas* canvas;
     I16 x;
     I16 y;
