@@ -3,7 +3,7 @@
 #include "win_clock_api.h"
 
 LARGE_INTEGER
-getFILETIMEoffset()
+get1970Offset()
 {
     SYSTEMTIME s = { 0 };
     FILETIME f;
@@ -34,8 +34,8 @@ double get_clock_microseconds_win()
     static double         frequencyToMicroseconds;
 
     if (!initialized) {
-        initialized = 1;
-        offset = getFILETIMEoffset();
+        initialized = 1;      
+        offset = get1970Offset();
         frequencyToMicroseconds = 10.;
     }
 
@@ -49,7 +49,7 @@ double get_clock_microseconds_win()
     return microseconds;
 }
 
-void sleep_microseconds_win(long microseconds) {
+void sleep_for_microseconds_win(long microseconds) {
     int dwMilliseconds = microseconds / 1000; // Duration of the delay in milliseconds
     SleepEx(dwMilliseconds, 0);
 }

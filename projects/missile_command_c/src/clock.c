@@ -22,11 +22,9 @@ U32 get_clock() {
     return (U32) (clock - first_clock);
 }
 
-void sleep_for(U32 duration) {
-    sleep_microseconds_win(1000000 * duration / CLOCKS_PER_SECOND);
+void sleep_for(U32 duration_in_clocks) {
+    sleep_for_microseconds_win(1000000 * duration_in_clocks / CLOCKS_PER_SECOND);
 }
-
-
 
 void wait_until(U32 until_clock) {
 
@@ -62,7 +60,6 @@ void Alarm_set(Alarm* pAlarm, Clock* pClock, U16 alarm_ticks, ALARM_FUNC callbac
     pAlarm->callback = callback;
     pAlarm->param = param;
 }
-
 
 void Alarm_check(Alarm* pAlarm) {
 

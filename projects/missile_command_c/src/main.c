@@ -9,13 +9,37 @@
 #include "list.h"
 #include "utils.h"
 
+#include "object.h"
+
+
+
+int main() {
+
+	Object objects[5] = { { 0 } };
+
+	Vec2 start_pos = { 50, 51 };
+	Vec2 end_pos = { 50, 50 };
+
+	Vec2	vel = { 0,0 };
+	calculate_velocity(&start_pos, &end_pos, 1, &vel);
+//	printf("start=%p, end=%p, vel=%s", &start_pos, &end_pos, 1);
+
+	Vec2 vel2 = { 0,0 };	
+	calculate_velocity(&start_pos, &end_pos, 2, &vel2);
+//	printf("start={start_pos}, end={end_pos}, vel={vel2}");
+
+	Vec2 vel3 = { 0,0 };
+	calculate_velocity(&start_pos, &end_pos, 3, &vel3);
+//	printf("start={start_pos}, end={end_pos}, vel={vel3}");
+}
+
 
 void print_func(void* param) {
 	printf("%s\n", (U8*)param);
 }
 
 
-int main() {
+int qmain() {
 
 	printf("fps=%d\n", FRAMES_PER_SECOND_16 / 16);
 	printf("tps=%d\n", TICKS_PER_SECOND_16 / 16);

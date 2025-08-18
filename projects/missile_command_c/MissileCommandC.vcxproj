@@ -141,9 +141,13 @@ xcopy /y "$(ProjectDir)..\..\tools\SDL3_ttf-devel-3.2.2-VC\SDL3_ttf-3.2.2\lib\x6
   <ItemGroup>
     <ClCompile Include="src\assets\assets.c" />
     <ClCompile Include="src\clock.c" />
+    <ClCompile Include="src\game_board.c" />
+    <ClCompile Include="src\game_levels.c" />
+    <ClCompile Include="src\game_objects.c" />
     <ClCompile Include="src\linux\linux_clock_api.c" />
     <ClCompile Include="src\list.c" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\object.c" />
     <ClCompile Include="src\sdl\sdl_graphics_api.c" />
     <ClCompile Include="src\shape.c" />
     <ClCompile Include="src\transform.c" />
